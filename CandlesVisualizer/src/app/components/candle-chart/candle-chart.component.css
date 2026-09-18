@@ -1,0 +1,12 @@
+canvas {
+  display: block;
+  margin: 0 auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fafafa;
+  min-width: 320px;
+}
+
+main {
+  min-height: 400px;
+}

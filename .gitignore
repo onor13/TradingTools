@@ -1,3 +1,28 @@
+# Gradle cache and build directories
+.gradle/
+**/build/
+.kotlin/
+
+# Project specific cache
+.gradletasknamecache
+
+# Gradle GUI config
+gradle-app.setting
+
+# Avoid ignoring Gradle wrapper files needed for builds
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# IntelliJ IDEA project files
+.idea/
+*.iml
+*.iws
+
+# Eclipse project files (if someone uses Eclipse)
+.classpath
+.project
+.settings/
+
 # Compiled class file
 *.class
 

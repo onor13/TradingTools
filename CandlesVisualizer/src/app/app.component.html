@@ -1,0 +1,37 @@
+<div class="container" style="min-width: 320px;">
+  <header style="min-width: 320px;">
+    <h1>{{ title }}</h1>
+    <button class="refresh-btn" (click)="refresh()" [disabled]="isLoading">
+      {{ isLoading ? 'Loading...' : 'Refresh' }}
+    </button>
+  </header>
+
+  <main style="min-width: 320px;">
+    @if (isLoading) {
+      <div class="loading">Loading candle data...</div>
+    } @else if (error) {
+      <div class="error">{{ error }}</div>
+    } @else if (candles.length === 0) {
+      <div class="empty-state">No candle data available</div>
+    } @else {
+      <app-candle-chart [candles]="candles"></app-candle-chart>
+    }
+  </main>
+
+  <footer class="stats" style="min-width: 320px;">
+    @if (candles.length > 0) {
+      <div class="stat-item">
+        <span>Total Candles:</span>
+        <strong>{{ candles.length }}</strong>
+      </div>
+      <div class="stat-item">
+          <span>1st Candle:</span>
+          <strong>{{ candles[0].low }}</strong>
+      </div>
+      <div class="stat-item">
+        <span>Price Range:</span>
+        <strong>{{ minPrice }} - {{ maxPrice }}</strong>
+      </div>
+    }
+  </footer>
+</div>

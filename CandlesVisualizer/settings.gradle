@@ -1,0 +1,3 @@
+rootProject.name = 'CandlesVisualizer'
+include ':candle'
+project(':candle').projectDir = file('../candle')

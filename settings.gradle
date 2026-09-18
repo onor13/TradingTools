@@ -1,0 +1,5 @@
+rootProject.name = 'TradingTools'
+include 'candle'
+include 'YM_Reversal'
+include 'CandlesVisualizer'
+include 'candleSerializer'

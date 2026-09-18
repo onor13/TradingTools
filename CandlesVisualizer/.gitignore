@@ -1,0 +1,21 @@
+# Angular
+/dist
+/out-tsc
+/dist-out-tsc
+/www
+/tsconfig.tsbuildinfo
+
+# Node
+node_modules
+package-lock.json
+npm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build artifacts
+build/
+.gradle/
