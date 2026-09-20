@@ -5,6 +5,9 @@ import java.util.List;
 
 import static org.onor.CandleJsonSerializer.*;
 
+import org.onor.candle.Candle;
+import org.onor.candle.builder.CandlePatternsBuilder;
+import org.onor.mapper.CandleMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,15 +15,15 @@ import org.slf4j.LoggerFactory;
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
+    private static final CandleMapper mapper = new CandleMapper();
 
     static void main() {
+
         //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
         // to see how IntelliJ IDEA suggests fixing it.
-        List<CandleJson> candles = List.of(
-                new CandleJson(100.0, 105.0, 98.0, 106.0),
-                new CandleJson(105.0, 102.0, 101.0, 107.0),
-                new CandleJson(102.0, 108.0, 100.0, 109.0)
-        );
+        List<Candle> innerHigh = CandlePatternsBuilder.breakOfInnerHigh();
+        List<CandleJson> candles = innerHigh.stream().map(mapper::mapToCandleJson).toList();
+
 
         try {
             // Serialize to JSON string (pretty printed)
