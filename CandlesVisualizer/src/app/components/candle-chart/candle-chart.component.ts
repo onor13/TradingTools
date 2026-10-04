@@ -235,7 +235,12 @@ export class CandleChartComponent implements OnChanges {
       return;
     }
 
-    // Only enable drag interaction for the second chart (when candles are transferred)
+    // Only enable drag interaction for the editable chart (secondChart)
+    if (!this.isEditableChart) {
+      console.log('onMouseDown: drag not enabled for non-editable chart');
+      return;
+    }
+
     if (!this.candles || this.candles.length === 0) {
       console.log('onMouseDown: no candles to drag');
       return;
@@ -364,6 +369,12 @@ export class CandleChartComponent implements OnChanges {
    */
   private onMouseMove(event: MouseEvent): void {
     console.log('onMouseMove called, event:', { clientX: event.clientX, clientY: event.clientY });
+
+    // Only allow drag on editable chart
+    if (!this.isEditableChart) {
+      console.log('onMouseMove: drag not enabled for non-editable chart');
+      return;
+    }
 
     if (!this.isDragging) {
       console.log('onMouseMove: not dragging');
