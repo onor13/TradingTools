@@ -54,8 +54,14 @@ export class AppComponent implements OnInit {
     // Transfer candles data to the second chart via shared property
     if (this.candles.length > 0) {
       console.log('Transferring', this.candles.length, 'candles to second chart');
-      // Update the transferredCandles property which is bound to the second chart
-      this.transferredCandles = [...this.candles];
+      // Create a deep copy of candles array with independent candle objects
+      this.transferredCandles = this.candles.map(candle => ({
+        open: candle.open,
+        close: candle.close,
+        low: candle.low,
+        high: candle.high,
+        direction: candle.direction
+      }));
     } else {
       console.log('No data to transfer');
     }
