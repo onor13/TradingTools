@@ -497,8 +497,8 @@ export class CandleChartComponent implements OnChanges {
       this.drawCandle(ctx, x, candle, minPrice, maxPrice, chartHeight, width, height, candleWidth, candleSpacing);
     });
 
-    // Draw price labels on the right
-    this.drawPriceLabels(ctx, width, height, minPrice, maxPrice);
+    // Draw price labels on the right - DISABLED
+    // this.drawPriceLabels(ctx, width, height, minPrice, maxPrice);
 
     // Draw time labels on the bottom
     this.drawTimeLabels(ctx, width, height);
@@ -599,36 +599,36 @@ export class CandleChartComponent implements OnChanges {
     ctx.fill();
   }
 
-  drawPriceLabels(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number,
-    minPrice: number,
-    maxPrice: number,
-    chartHeight: number = height * 0.9
-  ): void {
-    console.log('Drawing price labels with width:', width, 'height:', height, 'chartHeight:', chartHeight);
+  // drawPriceLabels(
+  //   ctx: CanvasRenderingContext2D,
+  //   width: number,
+  //   height: number,
+  //   minPrice: number,
+  //   maxPrice: number,
+  //   chartHeight: number = height * 0.9
+  // ): void {
+  //   console.log('Drawing price labels with width:', width, 'height:', height, 'chartHeight:', chartHeight);
 
-    const priceRange = maxPrice - minPrice;
-    const gridLines = 5;
+  //   const priceRange = maxPrice - minPrice;
+  //   const gridLines = 5;
 
-    // Calculate chart area (leaving space for Y-axis labels on the left)
-    const yAxisLabelWidth = 60;
+  //   // Calculate chart area (leaving space for Y-axis labels on the left)
+  //   const yAxisLabelWidth = 60;
 
-    for (let i = 0; i <= gridLines; i++) {
-      // Higher prices at lower Y values (top of chart)
-      const price = minPrice + (priceRange * (i / gridLines));
+  //   for (let i = 0; i <= gridLines; i++) {
+  //     // Higher prices at lower Y values (top of chart)
+  //     const price = minPrice + (priceRange * (i / gridLines));
 
-      // Calculate Y position: evenly distribute across chart height with padding
-      const y = (height - chartHeight) / 2 + ((gridLines - i) / gridLines) * chartHeight;
+  //     // Calculate Y position: evenly distribute across chart height with padding
+  //     const y = (height - chartHeight) / 2 + ((gridLines - i) / gridLines) * chartHeight;
 
-      ctx.fillStyle = '#666';
-      ctx.font = '12px Arial';
-      ctx.textAlign = 'left';
-      // Position labels to the right of chart area
-      ctx.fillText(price.toFixed(2), width - 40, y + 4);
-    }
-  }
+  //     ctx.fillStyle = '#666';
+  //     ctx.font = '12px Arial';
+  //     ctx.textAlign = 'left';
+  //     // Position labels to the right of chart area
+  //     ctx.fillText(price.toFixed(2), width - 40, y + 4);
+  //   }
+  // }
 
   drawTimeLabels(
     ctx: CanvasRenderingContext2D,
