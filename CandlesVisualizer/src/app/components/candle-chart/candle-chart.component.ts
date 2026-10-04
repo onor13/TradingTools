@@ -31,6 +31,7 @@ export class CandleChartComponent implements OnChanges {
   private dragStartCandleIndex: number = -1;
   private dragType: 'high' | 'low' | null = null;
   private cursorIndicator: CanvasRenderingContext2D | null = null;
+  private mouseMoveTimeout: number | null = null;
 
   ngOnChanges(changes: SimpleChanges): void {
     console.log('ngOnChanges called with changes:', changes);
@@ -70,32 +71,10 @@ export class CandleChartComponent implements OnChanges {
   ngOnInit(): void {
     console.log('ngOnInit called, candles:', this.candles);
 
-    if (this.chartCanvas) {
-      const canvas = this.chartCanvas.nativeElement;
-
-      // Prevent default context menu on right click
-      canvas.addEventListener('contextmenu', (e: MouseEvent) => e.preventDefault());
-
-      // Mouse down event for starting drag on second chart
-      canvas.addEventListener('mousedown', (e: MouseEvent) => this.onMouseDown(e), true);
-
-      // Mouse move event for dragging
-      canvas.addEventListener('mousemove', (e: MouseEvent) => this.onMouseMove(e), true);
-
-      // Mouse up event for ending drag
-      canvas.addEventListener('mouseup', (e: MouseEvent) => this.onMouseUp(e), true);
-
-      // Mouse leave event to cancel drag
-      canvas.addEventListener('mouseleave', (e: MouseEvent) => this.onMouseLeave(e), true);
-
-      // Click event for chart refresh
-      canvas.addEventListener('click', () => {
-        if (this.chartInstance) {
-          this.chartInstance.destroy();
-          this.renderChart();
-        }
-      });
-    }
+    // Use setTimeout to ensure canvas is ready in the DOM
+    setTimeout(() => {
+      this.initializeCanvasEvents();
+    }, 0);
 
     // Render chart if we have candles data (context will be initialized in renderChart)
     if (this.candles && this.candles.length > 0) {
@@ -106,7 +85,118 @@ export class CandleChartComponent implements OnChanges {
     }
   }
 
+  /**
+   * Initialize canvas event listeners after DOM is ready
+   */
+  private initializeCanvasEvents(): void {
+    console.log('initializeCanvasEvents called');
+
+    if (!this.chartCanvas) {
+      console.error('initializeCanvasEvents: chartCanvas ElementRef not found');
+      return;
+    }
+
+    const canvas = this.chartCanvas.nativeElement;
+    if (!canvas) {
+      console.error('initializeCanvasEvents: canvas element not found');
+      return;
+    }
+
+    console.log('initializeCanvasEvents: canvas ready, dimensions:', canvas.clientWidth, 'x', canvas.clientHeight);
+
+    // Ensure canvas intrinsic size matches CSS dimensions
+    this.resizeCanvas(canvas);
+
+    // Prevent default context menu on right click
+    canvas.addEventListener('contextmenu', (e: MouseEvent) => e.preventDefault());
+
+    // Mouse down event for starting drag on second chart
+    canvas.addEventListener('mousedown', (e: MouseEvent) => this.onMouseDown(e));
+
+    // Mouse move event for dragging
+    canvas.addEventListener('mousemove', (e: MouseEvent) => this.onMouseMove(e));
+
+    // Mouse up event for ending drag
+    canvas.addEventListener('mouseup', (e: MouseEvent) => this.onMouseUp(e));
+
+    // Mouse leave event to cancel drag
+    canvas.addEventListener('mouseleave', (e: MouseEvent) => this.onMouseLeave(e));
+
+    // Click event for chart refresh
+    canvas.addEventListener('click', () => {
+      if (this.chartInstance) {
+        this.chartInstance.destroy();
+        this.renderChart();
+      }
+    });
+
+    // Listen for window resize to update canvas size
+    this.setupResizeListener(canvas);
+
+    console.log('Canvas event listeners initialized');
+  }
+
+  /**
+   * Resize canvas intrinsic size to match CSS dimensions
+   */
+  private resizeCanvas(canvas: HTMLCanvasElement): void {
+    const rect = canvas.getBoundingClientRect();
+    const displayWidth = Math.round(rect.width);
+    const displayHeight = Math.round(rect.height);
+
+    // Only resize if dimensions changed
+    if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+      console.log('Resizing canvas:', displayWidth, 'x', displayHeight);
+      canvas.width = displayWidth;
+      canvas.height = displayHeight;
+
+      // Re-render chart after resize
+      if (this.candles && this.candles.length > 0) {
+        setTimeout(() => this.renderChart(), 0);
+      }
+    }
+  }
+
+  /**
+   * Setup resize listener to handle window resizing
+   */
+  private setupResizeListener(canvas: HTMLCanvasElement): void {
+    let resizeTimeout: number | null = null;
+
+    const handleResize = (): void => {
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
+
+      resizeTimeout = window.setTimeout(() => {
+        this.resizeCanvas(canvas);
+        resizeTimeout = null;
+      }, 100);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    // Store cleanup function for later
+    (canvas as any)._cleanupResize = () => {
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
+      window.removeEventListener('resize', handleResize);
+    };
+
+    // Store reference for cleanup in ngOnDestroy
+    (canvas as any)._resizeHandler = handleResize;
+  }
+
   ngOnDestroy(): void {
+    console.log('ngOnDestroy called');
+
+    // Clean up mouse move timeout
+    if (this.mouseMoveTimeout) {
+      clearTimeout(this.mouseMoveTimeout);
+      this.mouseMoveTimeout = null;
+    }
+
     if (this.chartInstance) {
       this.chartInstance.destroy();
     }
@@ -114,33 +204,61 @@ export class CandleChartComponent implements OnChanges {
     // Clean up canvas event listeners
     if (this.chartCanvas) {
       const canvas = this.chartCanvas.nativeElement;
-      canvas.removeEventListener('mousedown', this.onMouseDown.bind(this));
-      canvas.removeEventListener('mousemove', this.onMouseMove.bind(this));
-      canvas.removeEventListener('mouseup', this.onMouseUp.bind(this));
-      canvas.removeEventListener('mouseleave', this.onMouseLeave.bind(this));
+      if (canvas) {
+        console.log('Cleaning up canvas event listeners');
+
+        // Clean up resize listener
+        if ((canvas as any)._cleanupResize) {
+          (canvas as any)._cleanupResize();
+        }
+
+        canvas.removeEventListener('contextmenu', (e: MouseEvent) => e.preventDefault());
+        canvas.removeEventListener('mousedown', (e: MouseEvent) => this.onMouseDown(e));
+        canvas.removeEventListener('mousemove', (e: MouseEvent) => this.onMouseMove(e));
+        canvas.removeEventListener('mouseup', (e: MouseEvent) => this.onMouseUp(e));
+        canvas.removeEventListener('mouseleave', (e: MouseEvent) => this.onMouseLeave(e));
+      }
     }
+
+    console.log('ngOnDestroy completed');
   }
 
   /**
    * Handle mouse down event - start drag operation
    */
   private onMouseDown(event: MouseEvent): void {
+    console.log('onMouseDown called, event:', { clientX: event.clientX, clientY: event.clientY });
+
     const canvas = this.chartCanvas?.nativeElement;
-    if (!canvas) return;
+    if (!canvas) {
+      console.error('onMouseDown: canvas not found');
+      return;
+    }
 
     // Only enable drag interaction for the second chart (when candles are transferred)
-    if (!this.candles || this.candles.length === 0) return;
+    if (!this.candles || this.candles.length === 0) {
+      console.log('onMouseDown: no candles to drag');
+      return;
+    }
 
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
+    console.log('onMouseDown: canvas rect:', rect, 'mouse x,y:', x, y);
+
     // Check if clicked on a candle wick
     const candleIndex = this.findCandleAtX(x);
-    if (candleIndex === -1) return;
+    if (candleIndex === -1) {
+      console.log('onMouseDown: no candle at x position', x);
+      return;
+    }
 
     const candle = this.candles[candleIndex];
-    if (!candle) return;
+    if (!candle) {
+      console.error('onMouseDown: no candle data at index', candleIndex);
+      return;
+    }
 
     const metrics = this.getChartMetrics();
     const { minPrice, maxPrice, chartHeight } = metrics;
@@ -153,8 +271,12 @@ export class CandleChartComponent implements OnChanges {
     const yOpen = padding + ((maxPrice - candle.open) / (maxPrice - minPrice)) * chartHeight;
     const yClose = padding + ((maxPrice - candle.close) / (maxPrice - minPrice)) * chartHeight;
 
+    console.log('onMouseDown: candle', candleIndex, 'y positions:', { yHigh, yLow, yOpen, yClose });
+
     // Check if clicked on high wick (top half of wick)
     const isHigh = y <= (yHigh + yOpen) / 2;
+
+    console.log('onMouseDown: starting drag, candleIndex:', candleIndex, 'type:', isHigh ? 'high' : 'low');
 
     this.isDragging = true;
     this.dragStartY = y;
@@ -174,9 +296,6 @@ export class CandleChartComponent implements OnChanges {
   private drawCursorIndicator(x: number, y: number): void {
     const canvas = this.chartCanvas?.nativeElement;
     if (!canvas || !this.ctx) return;
-
-    // Clear previous indicator
-    this.ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 
     // Draw cursor based on drag type
     if (this.dragType === 'high') {
@@ -229,13 +348,38 @@ export class CandleChartComponent implements OnChanges {
   }
 
   /**
+   * Clear the cursor indicator from the canvas
+   */
+  private clearCursorIndicator(): void {
+    const canvas = this.chartCanvas?.nativeElement;
+    if (!canvas || !this.ctx) return;
+
+    // Clear the indicator area - includes triangle, horizontal line across canvas, and text
+    const indicatorSize = 100;
+    this.ctx.clearRect(0, 0, canvas.clientWidth + indicatorSize * 2, indicatorSize);
+  }
+
+  /**
    * Handle mouse move event - update candle values during drag
    */
   private onMouseMove(event: MouseEvent): void {
-    if (!this.isDragging || this.dragStartCandleIndex === -1) return;
+    console.log('onMouseMove called, event:', { clientX: event.clientX, clientY: event.clientY });
+
+    if (!this.isDragging) {
+      console.log('onMouseMove: not dragging');
+      return;
+    }
+
+    if (this.dragStartCandleIndex === -1) {
+      console.log('onMouseMove: no candle selected');
+      return;
+    }
 
     const canvas = this.chartCanvas?.nativeElement;
-    if (!canvas) return;
+    if (!canvas) {
+      console.error('onMouseMove: canvas not found');
+      return;
+    }
 
     // Get canvas position relative to viewport
     const rect = canvas.getBoundingClientRect();
@@ -243,34 +387,29 @@ export class CandleChartComponent implements OnChanges {
     // Calculate mouse Y position relative to chart area (accounting for padding)
     const y = event.clientY - rect.top;
 
-    // Clamp Y to chart bounds (with padding for labels)
-    const chartHeight = canvas.clientHeight * 0.9;
-    const clampedY = Math.max(chartHeight / 2 - chartHeight / 2, Math.min(y, rect.height - chartHeight / 2 - chartHeight / 2));
+    // Get chart metrics for proper price calculation
+    const metrics = this.getChartMetrics();
+    const { minPrice, maxPrice, chartHeight } = metrics;
 
-    // Calculate new price based on drag position
-    let minPrice = Infinity;
-    let maxPrice = -Infinity;
+    // Calculate padding (top and bottom margins)
+    const padding = (canvas.clientHeight - chartHeight) / 2;
 
-    this.candles.forEach(candle => {
-      if (candle.low < minPrice) minPrice = candle.low;
-      if (candle.high > maxPrice) maxPrice = candle.high;
-    });
-
-    const priceRange = maxPrice - minPrice;
-    const padding = priceRange * 0.1;
-    minPrice -= padding;
-    maxPrice += padding;
+    // Clamp Y to actual chart bounds
+    const clampedY = Math.max(padding, Math.min(y, padding + chartHeight));
 
     // Calculate new price based on y position (lower Y = higher price)
-    const normalizedY = clampedY / chartHeight;
+    const normalizedY = (clampedY - padding) / chartHeight;
     let newPrice: number;
+
     if (this.dragType === 'high') {
       // For high, lower Y position = higher price
-      newPrice = maxPrice - (normalizedY * priceRange);
+      newPrice = maxPrice - (normalizedY * (maxPrice - minPrice));
     } else {
       // For low, higher Y position = lower price
-      newPrice = minPrice + ((1 - normalizedY) * priceRange);
+      newPrice = minPrice + (normalizedY * (maxPrice - minPrice));
     }
+
+    console.log('onMouseMove: new price:', newPrice, 'normalizedY:', normalizedY);
 
     // Update the candle data
     const candle = this.candles[this.dragStartCandleIndex];
@@ -291,15 +430,32 @@ export class CandleChartComponent implements OnChanges {
         candle.low = candle.high;
       }
 
-      // Emit the modified candle (only for second chart)
-      this.candleModified.emit(candle);
+      // Only emit and re-render if the value actually changed (debounced)
+      const newHigh = this.dragType === 'high' ? candle.high : oldHigh;
+      const newLow = this.dragType === 'low' ? candle.low : oldLow;
 
-      // Re-render the chart
-      setTimeout(() => {
-        this.renderChart();
-      }, 0);
+      if (newHigh !== oldHigh || newLow !== oldLow) {
+        // Clear any existing timeout
+        if (this.mouseMoveTimeout) {
+          clearTimeout(this.mouseMoveTimeout);
+          this.mouseMoveTimeout = null;
+        }
 
-      console.log(`Modified candle ${this.dragStartCandleIndex}: high=${oldHigh} -> ${candle.high}, low=${oldLow} -> ${candle.low}`);
+        // Debounce the emit - wait 10ms after mouse stops moving rapidly
+        this.mouseMoveTimeout = window.setTimeout(() => {
+          // Emit the modified candle (only for second chart)
+          this.candleModified.emit(candle);
+
+          // Re-render the chart
+          setTimeout(() => {
+            this.renderChart();
+          }, 0);
+
+          console.log(`Modified candle ${this.dragStartCandleIndex}: high=${oldHigh} -> ${candle.high}, low=${oldLow} -> ${candle.low}`);
+        }, 10);
+      } else {
+        console.log(`No change in candle ${this.dragStartCandleIndex} at y=${clampedY.toFixed(2)}`);
+      }
     }
 
     // Redraw cursor indicator at new position (use event coordinates for proper tracking)
@@ -310,17 +466,28 @@ export class CandleChartComponent implements OnChanges {
    * Handle mouse up event - end drag operation
    */
   private onMouseUp(event: MouseEvent): void {
+    console.log('onMouseUp called, ending drag operation');
+
     this.isDragging = false;
     this.dragStartY = 0;
     this.dragStartCandleIndex = -1;
     this.dragType = null;
 
-    // Clear cursor indicator using main context
-    if (this.ctx && this.chartCanvas) {
-      const canvas = this.chartCanvas.nativeElement;
-      if (canvas) {
-        this.ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-      }
+    // Clear cursor indicator
+    this.clearCursorIndicator();
+
+    // Emit the final modified candle if we were dragging
+    if (this.dragStartCandleIndex !== -1 && this.candles[this.dragStartCandleIndex]) {
+      const modifiedCandle = this.candles[this.dragStartCandleIndex];
+      console.log('onMouseUp: emitting final modified candle:', modifiedCandle);
+
+      // Emit the modified candle to parent component
+      this.candleModified.emit(modifiedCandle);
+
+      // Re-render the chart to ensure final state is displayed
+      setTimeout(() => {
+        this.renderChart();
+      }, 0);
     }
   }
 
@@ -328,17 +495,28 @@ export class CandleChartComponent implements OnChanges {
    * Handle mouse leave event - cancel drag operation
    */
   private onMouseLeave(event: MouseEvent): void {
+    console.log('onMouseLeave called, cancelling drag operation');
+
     this.isDragging = false;
     this.dragStartY = 0;
     this.dragStartCandleIndex = -1;
     this.dragType = null;
 
-    // Clear cursor indicator using main context
-    if (this.ctx && this.chartCanvas) {
-      const canvas = this.chartCanvas.nativeElement;
-      if (canvas) {
-        this.ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-      }
+    // Clear cursor indicator
+    this.clearCursorIndicator();
+
+    // Emit the final modified candle if we were dragging (even though we're cancelling)
+    if (this.dragStartCandleIndex !== -1 && this.candles[this.dragStartCandleIndex]) {
+      const modifiedCandle = this.candles[this.dragStartCandleIndex];
+      console.log('onMouseLeave: emitting final modified candle:', modifiedCandle);
+
+      // Emit the modified candle to parent component
+      this.candleModified.emit(modifiedCandle);
+
+      // Re-render the chart to ensure final state is displayed
+      setTimeout(() => {
+        this.renderChart();
+      }, 0);
     }
   }
 
@@ -576,7 +754,7 @@ export class CandleChartComponent implements OnChanges {
     ctx.moveTo(x + candleWidth / 2, yLow);
     ctx.lineTo(x + candleWidth / 2, yHigh);
     ctx.strokeStyle = color;
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 6;
     ctx.stroke();
 
     // Draw body
