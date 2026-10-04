@@ -5,6 +5,18 @@ canvas {
   border-radius: 4px;
   background-color: #fafafa;
   min-width: 320px;
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+canvas:hover {
+  cursor: move;
+}
+
+canvas.dragging {
+  cursor: grabbing;
 }
 
 main {
@@ -39,4 +51,15 @@ main {
 
 .transfer-btn:active {
   background-color: #004494;
+}
+
+/* Dragging indicator */
+.drag-indicator {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* Editable chart indicator */
+.editable-chart {
+  border-color: #007bff !important;
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CandlesDataService, CandleData } from './services/candles-data.service';
 
 export interface CandlesResponse {
@@ -58,6 +58,17 @@ export class AppComponent implements OnInit {
       this.transferredCandles = [...this.candles];
     } else {
       console.log('No data to transfer');
+    }
+  }
+
+  onCandleModified(candle: CandleData): void {
+    // Find the index of the modified candle in transferredCandles
+    const index = this.transferredCandles.findIndex(c => c === candle || c.high === candle.high && c.low === candle.low);
+
+    if (index !== -1) {
+      // Update the transferredCandles array with modified values
+      this.transferredCandles[index] = { ...this.transferredCandles[index], ...candle };
+      console.log('Candle modified in second chart:', candle);
     }
   }
 

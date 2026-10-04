@@ -1,12 +1,12 @@
-<div class="container" style="min-width: 320px;">
-  <header style="min-width: 320px;">
+<div class="container" style="min-width: 320px; max-width: 100%;">
+  <header style="min-width: 320px; max-width: 100%;">
     <h1>{{ title }}</h1>
     <button class="refresh-btn" (click)="refresh()" [disabled]="isLoading">
       {{ isLoading ? 'Loading...' : 'Refresh' }}
     </button>
   </header>
 
-  <main style="min-width: 320px;">
+  <main style="min-width: 320px; max-width: 100%;">
     @if (isLoading) {
       <div class="loading">Loading candle data...</div>
     } @else if (error) {
@@ -14,20 +14,23 @@
     } @else if (candles.length === 0) {
       <div class="empty-state">No candle data available</div>
     } @else {
-      <app-candle-chart [candles]="candles"></app-candle-chart>
+      <div style="width: 100%; max-width: 100%;">
+        <app-candle-chart [candles]="candles"></app-candle-chart>
+      </div>
 
       <div style="text-align: center; margin: 20px 0;">
         <button class="transfer-btn" (click)="transferData()">Transfer Data</button>
       </div>
 
       <!-- Second chart that will display transferred data -->
-      <div style="margin-top: 20px;">
-        <app-candle-chart #secondChart [candles]="transferredCandles"></app-candle-chart>
+      <div style="margin-top: 20px; width: 100%; max-width: 100%;">
+        <h3 style="text-align: center; color: #666;">Editable Chart - Click and drag on candle wicks to modify high/low values</h3>
+        <app-candle-chart #secondChart [candles]="transferredCandles" [isEditableChart]="true" (candleModified)="onCandleModified($event)"></app-candle-chart>
       </div>
     }
   </main>
 
-  <footer class="stats" style="min-width: 320px;">
+  <footer class="stats" style="min-width: 320px; max-width: 100%;">
     @if (candles.length > 0) {
       <div class="stat-item">
         <span>Total Candles:</span>
