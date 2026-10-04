@@ -10,3 +10,33 @@ canvas {
 main {
   min-height: 400px;
 }
+
+/* Empty chart styling */
+.empty-chart {
+  border: 1px dashed #ccc;
+  background-color: #f9f9f9;
+}
+
+.empty-chart canvas {
+  border-style: dashed;
+  background-color: #f9f9f9;
+}
+
+.transfer-btn {
+  padding: 20px 48px;
+  font-size: 32px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.transfer-btn:hover {
+  background-color: #0056b3;
+}
+
+.transfer-btn:active {
+  background-color: #004494;
+}

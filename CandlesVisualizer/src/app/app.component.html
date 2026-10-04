@@ -15,6 +15,15 @@
       <div class="empty-state">No candle data available</div>
     } @else {
       <app-candle-chart [candles]="candles"></app-candle-chart>
+
+      <div style="text-align: center; margin: 20px 0;">
+        <button class="transfer-btn" (click)="transferData()">Transfer Data</button>
+      </div>
+
+      <!-- Second chart that will display transferred data -->
+      <div style="margin-top: 20px;">
+        <app-candle-chart #secondChart [candles]="transferredCandles"></app-candle-chart>
+      </div>
     }
   </main>
 

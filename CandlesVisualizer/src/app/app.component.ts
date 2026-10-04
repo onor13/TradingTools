@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CandlesDataService, CandleData } from './services/candles-data.service';
 
 export interface CandlesResponse {
@@ -17,6 +17,9 @@ export class AppComponent implements OnInit {
   error: string | null = null;
   minPrice!: number;
   maxPrice!: number;
+
+  // Shared data for the second chart
+  transferredCandles: CandleData[] = [];
 
   constructor(private candlesService: CandlesDataService) {}
 
@@ -45,6 +48,17 @@ export class AppComponent implements OnInit {
 
   refresh(): void {
     this.loadCandles();
+  }
+
+  transferData(): void {
+    // Transfer candles data to the second chart via shared property
+    if (this.candles.length > 0) {
+      console.log('Transferring', this.candles.length, 'candles to second chart');
+      // Update the transferredCandles property which is bound to the second chart
+      this.transferredCandles = [...this.candles];
+    } else {
+      console.log('No data to transfer');
+    }
   }
 
   calculatePriceRange(): void {

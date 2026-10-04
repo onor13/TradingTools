@@ -68,6 +68,7 @@ The frontend will be available at `http://localhost:4200`
 - **Color Coding**: Green candles for upward movement, red for downward
 - **Responsive Design**: Adapts to different screen sizes
 - **Refresh Button**: Reload candle data
+- **Transfer Data Button**: Transfer candle data from the dataChart to a secondChart for comparison or analysis
 
 ## Technologies Used
 
@@ -79,3 +80,16 @@ The frontend will be available at `http://localhost:4200`
 - Angular 18
 - TypeScript 5.4
 - Canvas API for chart rendering
+
+## Data Transfer Feature
+
+The application includes a "Transfer Data" button that allows you to move candle data from the first chart (displaying loaded data) to a second empty chart. This is useful for:
+
+- **Comparison**: View the same data in two separate charts
+- **Analysis**: Copy data to a blank chart for further manipulation or testing
+- **Demonstration**: Show how the chart renders with different data sets
+
+**How to use:**
+1. Load candle data (automatic on page load or click "Refresh")
+2. Click the "Transfer Data" button located between the two charts
+3. The second chart will populate with the same candle data
