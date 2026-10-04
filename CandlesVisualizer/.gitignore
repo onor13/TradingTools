@@ -4,6 +4,7 @@
 /dist-out-tsc
 /www
 /tsconfig.tsbuildinfo
+/.angular/cache
 
 # Node
 node_modules
