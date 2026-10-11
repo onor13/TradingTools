@@ -228,6 +228,11 @@ export class CandleChartComponent implements OnChanges {
    */
   private onMouseDown(event: MouseEvent): void {
     console.log('onMouseDown called, event:', { clientX: event.clientX, clientY: event.clientY });
+    // Only enable drag interaction for the editable chart (secondChart)
+    if (!this.isEditableChart) {
+      console.log('onMouseDown: drag not enabled for non-editable chart');
+      return;
+    }
 
     const canvas = this.chartCanvas?.nativeElement;
     if (!canvas) {
@@ -235,11 +240,7 @@ export class CandleChartComponent implements OnChanges {
       return;
     }
 
-    // Only enable drag interaction for the editable chart (secondChart)
-    if (!this.isEditableChart) {
-      console.log('onMouseDown: drag not enabled for non-editable chart');
-      return;
-    }
+
 
     if (!this.candles || this.candles.length === 0) {
       console.log('onMouseDown: no candles to drag');
@@ -300,6 +301,11 @@ export class CandleChartComponent implements OnChanges {
    */
   private drawCursorIndicator(x: number, y: number): void {
     const canvas = this.chartCanvas?.nativeElement;
+    if (!this.isEditableChart) {
+      console.log('drawCursorIndicator: not enabled for non-editable chart');
+      return;
+    }
+
     if (!canvas || !this.ctx) return;
 
     // Draw cursor based on drag type

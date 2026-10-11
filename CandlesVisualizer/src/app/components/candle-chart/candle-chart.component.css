@@ -19,6 +19,15 @@ canvas.dragging {
   cursor: grabbing;
 }
 
+/* Non-editable chart - no cursor changes */
+.non-editable canvas {
+  cursor: default !important;
+}
+
+.non-editable canvas:hover {
+  cursor: default !important;
+}
+
 main {
   min-height: 400px;
 }

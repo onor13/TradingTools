@@ -15,7 +15,8 @@
       <div class="empty-state">No candle data available</div>
     } @else {
       <div style="width: 100%; max-width: 100%;">
-        <app-candle-chart [candles]="candles"></app-candle-chart>
+        <h3 style="text-align: center; color: #666;">dataChart</h3>
+        <app-candle-chart [candles]="candles" [isEditableChart]="false"></app-candle-chart>
       </div>
 
       <div style="text-align: center; margin: 20px 0;">
