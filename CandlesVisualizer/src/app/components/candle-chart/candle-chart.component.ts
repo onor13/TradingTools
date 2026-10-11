@@ -30,7 +30,9 @@ export class CandleChartComponent implements OnChanges {
   private dragStartY: number = 0;
   private dragStartCandleIndex: number = -1;
   private dragType: 'high' | 'low' | null = null;
-  private cursorIndicator: CanvasRenderingContext2D | null = null;
+  private cursorIndicatorX: number = 0;
+  private cursorIndicatorY: number = 0;
+  private cursorIndicatorHeight: number = 0;
   private mouseMoveTimeout: number | null = null;
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -308,6 +310,10 @@ export class CandleChartComponent implements OnChanges {
 
     if (!canvas || !this.ctx) return;
 
+    // Store cursor position for later cleanup
+    this.cursorIndicatorX = x;
+    this.cursorIndicatorY = y;
+
     // Draw cursor based on drag type
     if (this.dragType === 'high') {
       // Draw a triangle pointing up for high drag
@@ -332,6 +338,9 @@ export class CandleChartComponent implements OnChanges {
       this.ctx.font = '12px Arial';
       this.ctx.textAlign = 'left';
       this.ctx.fillText('Drag High', x + 20, y - 5);
+
+      // Calculate indicator height (triangle + text)
+      this.cursorIndicatorHeight = 30; // Triangle (20px) + text (~15px including baseline)
     } else {
       // Draw a triangle pointing down for low drag
       this.ctx.fillStyle = '#ff9800';
@@ -355,6 +364,9 @@ export class CandleChartComponent implements OnChanges {
       this.ctx.font = '12px Arial';
       this.ctx.textAlign = 'left';
       this.ctx.fillText('Drag Low', x + 20, y + 25);
+
+      // Calculate indicator height (triangle + text)
+      this.cursorIndicatorHeight = 40; // Triangle (20px) + text (~25px including baseline)
     }
   }
 
@@ -365,9 +377,26 @@ export class CandleChartComponent implements OnChanges {
     const canvas = this.chartCanvas?.nativeElement;
     if (!canvas || !this.ctx) return;
 
-    // Clear the indicator area - includes triangle, horizontal line across canvas, and text
-    const indicatorSize = 100;
-    this.ctx.clearRect(0, 0, canvas.clientWidth + indicatorSize * 2, indicatorSize);
+    // Only clear a small area around the indicator text, not from (0, 0)
+    // This prevents clearing the top portion of the chart where grid lines and candles are drawn
+    if (this.cursorIndicatorY > 0 && this.cursorIndicatorHeight > 0) {
+      // Clear only a small area around the indicator text (not from top-left corner)
+      const clearHeight = this.cursorIndicatorHeight + 10; // Add some buffer
+      // Clear only a small area around the cursor position, not from (0, 0)
+      // The text is drawn at y - 5 for high drag or y + 25 for low drag
+      // We clear from the top of where the text would be drawn (y - 5 for high, y + 25 for low)
+      const textY = this.dragType === 'high' ? this.cursorIndicatorY - 5 : this.cursorIndicatorY + 25;
+      // Only clear if text is within canvas bounds
+      if (textY >= 0) {
+        this.ctx.clearRect(this.cursorIndicatorX - 20, textY - 5, 60, clearHeight);
+      }
+    }
+
+    // Reset cursor indicator position and drag type
+    this.cursorIndicatorX = 0;
+    this.cursorIndicatorY = 0;
+    this.cursorIndicatorHeight = 0;
+    this.dragType = null;
   }
 
   /**
@@ -476,6 +505,7 @@ export class CandleChartComponent implements OnChanges {
     }
 
     // Redraw cursor indicator at new position (use event coordinates for proper tracking)
+    this.cursorIndicatorX = 0; // Reset before redrawing
     this.drawCursorIndicator(rect.left + event.clientX - rect.left, clampedY);
   }
 
@@ -490,7 +520,7 @@ export class CandleChartComponent implements OnChanges {
     this.dragStartCandleIndex = -1;
     this.dragType = null;
 
-    // Clear cursor indicator
+    // Clear cursor indicator (cursor position already reset in clearCursorIndicator)
     this.clearCursorIndicator();
 
     // Emit the final modified candle if we were dragging
@@ -519,7 +549,7 @@ export class CandleChartComponent implements OnChanges {
     this.dragStartCandleIndex = -1;
     this.dragType = null;
 
-    // Clear cursor indicator
+    // Clear cursor indicator (cursor position already reset in clearCursorIndicator)
     this.clearCursorIndicator();
 
     // Emit the final modified candle if we were dragging (even though we're cancelling)

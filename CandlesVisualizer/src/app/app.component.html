@@ -25,7 +25,7 @@
 
       <!-- Second chart that will display transferred data -->
       <div style="margin-top: 20px; width: 100%; max-width: 100%;">
-        <h3 style="text-align: center; color: #666;">Editable Chart - Click and drag on candle wicks to modify high/low values</h3>
+        <h3 style="text-align: center; color: #666;">Editable Chart (secondChart) - Click and drag on candle wicks to modify high/low values</h3>
         <app-candle-chart #secondChart [candles]="transferredCandles" [isEditableChart]="true" (candleModified)="onCandleModified($event)"></app-candle-chart>
       </div>
     }
