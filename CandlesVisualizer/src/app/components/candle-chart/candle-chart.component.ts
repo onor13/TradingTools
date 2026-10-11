@@ -1,4 +1,6 @@
 import { Component, Input, ViewChild, ElementRef, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
+import { CdkDrag, CdkDragStart, CdkDragEnd, CdkDragMove, CdkDragEnter, CdkDragExit, CdkDragDrop, CdkDropList, DragRef } from '@angular/cdk/drag-drop';
+import { CommonModule } from '@angular/common';
 
 export interface CandleData {
   open: number;
@@ -8,10 +10,23 @@ export interface CandleData {
   direction: string;
 }
 
+/**
+ * CDK Drag-Drop drag item for candle resizing
+ */
+class DragCandle {
+  constructor(
+    public index: number,
+    public element: CandleData | null = null,
+    public dragType: 'high' | 'low' | null = null
+  ) {}
+}
+
 @Component({
   selector: 'app-candle-chart',
   templateUrl: './candle-chart.component.html',
-  styleUrls: ['./candle-chart.component.css']
+  styleUrls: ['./candle-chart.component.css'],
+  standalone: true,
+  imports: [CommonModule, CdkDropList, CdkDrag]
 })
 export class CandleChartComponent implements OnChanges {
   @Input() candles: CandleData[] = [];
@@ -25,7 +40,10 @@ export class CandleChartComponent implements OnChanges {
 
   @ViewChild('chartCanvas', { static: false }) chartCanvas!: ElementRef<HTMLCanvasElement>;
 
-  // Mouse interaction state
+  // CDK Drag-Drop references
+  private dragRef: DragRef | null = null;
+
+  // Mouse interaction state (legacy - will be replaced by CDK)
   private isDragging: boolean = false;
   private dragStartY: number = 0;
   private dragStartCandleIndex: number = -1;
@@ -34,6 +52,13 @@ export class CandleChartComponent implements OnChanges {
   private cursorIndicatorY: number = 0;
   private cursorIndicatorHeight: number = 0;
   private mouseMoveTimeout: number | null = null;
+
+  // CDK Drag-Drop state
+  private draggedCandleIndex: number = -1;
+  private dragTypeCDK: 'high' | 'low' | null = null;
+
+  // Candle data for resizing
+  private candleData: { [index: number]: CandleData } = {};
 
   ngOnChanges(changes: SimpleChanges): void {
     console.log('ngOnChanges called with changes:', changes);
@@ -44,12 +69,10 @@ export class CandleChartComponent implements OnChanges {
 
       console.log('Previous candles:', prevCandles?.length, 'Current candles:', currCandles?.length);
 
-      // Render when candles change from empty to populated (component just appeared in DOM)
+      // Initialize CDK Drag-Drop when candles change from empty to populated
       if (!prevCandles && currCandles && currCandles.length > 0) {
-        console.log('Candles changed from empty to populated, rendering chart');
-        setTimeout(() => {
-          this.renderChart();
-        }, 0);
+        console.log('CDK Drag-Drop initialized for new candles');
+        this.initializeCDKDragDrop();
       }
 
       // Re-render if candles changed after initial load (and component is already in DOM)
@@ -76,6 +99,7 @@ export class CandleChartComponent implements OnChanges {
     // Use setTimeout to ensure canvas is ready in the DOM
     setTimeout(() => {
       this.initializeCanvasEvents();
+      this.initializeCDKDragDrop();
     }, 0);
 
     // Render chart if we have candles data (context will be initialized in renderChart)
@@ -84,6 +108,225 @@ export class CandleChartComponent implements OnChanges {
       this.renderChart();
     } else {
       console.log('No candles to render in ngOnInit');
+    }
+  }
+
+  /**
+   * Initialize CDK Drag-Drop event listeners for editable chart
+   */
+  private initializeCDKDragDrop(): void {
+    console.log('initializeCDKDragDrop called');
+
+    if (!this.isEditableChart) {
+      console.log('CDK Drag-Drop not enabled for non-editable chart');
+      return;
+    }
+
+    if (!this.chartCanvas) {
+      console.error('initializeCDKDragDrop: chartCanvas ElementRef not found');
+      return;
+    }
+
+    const canvas = this.chartCanvas.nativeElement;
+    if (!canvas) {
+      console.error('initializeCDKDragDrop: canvas element not found');
+      return;
+    }
+
+    // CDK drag-drop is handled by the overlay divs with [cdkDrag] directive
+    // The events are automatically bound via template bindings
+
+    console.log('CDK Drag-Drop initialized via overlay divs');
+  }
+
+  /**
+   * Get the X position of a candle for overlay positioning
+   */
+  getCandlePosition(index: number): number {
+    if (!this.candles || this.candles.length === 0) return 0;
+
+    const canvas = this.chartCanvas?.nativeElement;
+    if (!canvas) return 0;
+
+    const width = canvas.clientWidth;
+    const yAxisLabelWidth = 60;
+    const chartWidth = width - yAxisLabelWidth - 20;
+
+    const baseCandleWidth = Math.max(2, chartWidth / this.candles.length - 4);
+    const candleWidth = this.isEditableChart ? baseCandleWidth * 1.4 : baseCandleWidth;
+    const candleSpacing = (chartWidth - candleWidth * this.candles.length) / (this.candles.length + 1);
+
+    return candleSpacing + (index * (candleWidth + 4));
+  }
+
+  /**
+   * Get the candle width for a specific index
+   */
+  getCandleWidth(index: number): number {
+    if (!this.candles || this.candles.length === 0) return 0;
+
+    const canvas = this.chartCanvas?.nativeElement;
+    if (!canvas) return 0;
+
+    const width = canvas.clientWidth;
+    const yAxisLabelWidth = 60;
+    const chartWidth = width - yAxisLabelWidth - 20;
+
+    const baseCandleWidth = Math.max(2, chartWidth / this.candles.length - 4);
+    const candleWidth = this.isEditableChart ? baseCandleWidth * 1.4 : baseCandleWidth;
+    const candleSpacing = (chartWidth - candleWidth * this.candles.length) / (this.candles.length + 1);
+
+    return candleWidth;
+  }
+
+  /**
+   * Get the candle spacing for positioning
+   */
+  getCandleSpacing(): number {
+    if (!this.candles || this.candles.length === 0) return 0;
+
+    const canvas = this.chartCanvas?.nativeElement;
+    if (!canvas) return 0;
+
+    const width = canvas.clientWidth;
+    const yAxisLabelWidth = 60;
+    const chartWidth = width - yAxisLabelWidth - 20;
+
+    const baseCandleWidth = Math.max(2, chartWidth / this.candles.length - 4);
+    const candleSpacing = (chartWidth - baseCandleWidth * this.candles.length) / (this.candles.length + 1);
+
+    return candleSpacing;
+  }
+
+  /**
+   * Get the current price from a drag element for tooltip display
+   */
+  getCurrentPriceFromDragElement(draggableElement: HTMLElement | null): string {
+    if (!draggableElement) return '';
+
+    const candleIndexAttr = draggableElement.getAttribute('data-candle-index');
+    if (!candleIndexAttr) return '';
+
+    const index = parseInt(candleIndexAttr, 10);
+    if (index < 0 || !this.candles[index]) return '';
+
+    const dragTypeAttr = draggableElement.getAttribute('data-drag-type');
+    const candle = this.candles[index];
+
+    if (dragTypeAttr === 'high') {
+      return candle.high.toFixed(2);
+    } else if (dragTypeAttr === 'low') {
+      return candle.low.toFixed(2);
+    }
+
+    return '';
+  }
+
+  /**
+   * Update the drag element's price tooltip in real-time during dragging
+   */
+  updateDragElementPrice(draggableElement: HTMLElement | null): void {
+    if (!draggableElement) return;
+
+    const price = this.getCurrentPriceFromDragElement(draggableElement);
+    draggableElement.setAttribute('data-price', price);
+  }
+
+  /**
+   * Calculate the Y position from a mouse event (accounting for element offset)
+   */
+  getMouseYInCanvas(event: MouseEvent): number {
+    const canvas = this.chartCanvas?.nativeElement;
+    if (!canvas) return 0;
+
+    const rect = canvas.getBoundingClientRect();
+    return event.clientY - rect.top;
+  }
+
+  /**
+   * Handle mouse move on drag elements for real-time price preview
+   */
+  onMouseMoveOnDrag(event: MouseEvent): void {
+    if (!this.isEditableChart || !this.dragTypeCDK) return;
+
+    const canvas = this.chartCanvas?.nativeElement;
+    if (!canvas) return;
+
+    const yPosition = this.getMouseYInCanvas(event);
+    const price = this.calculatePriceFromY(yPosition);
+
+    // Update the drag element's tooltip
+    const draggableElement = event.target as HTMLElement;
+    if (draggableElement) {
+      draggableElement.setAttribute('data-price', price.toFixed(2));
+    }
+
+    // Update the cursor indicator position if dragging
+    if (this.draggedCandleIndex !== -1) {
+      const candle = this.candles[this.draggedCandleIndex];
+      if (candle) {
+        // Update the indicator to show current price level
+        const candleX = this.getCandlePosition(this.draggedCandleIndex);
+
+        // Clear previous indicator
+        this.clearCursorIndicator();
+
+        // Draw new cursor indicator at current position
+        const ctx = this.ensureCanvasContext();
+        if (ctx && candleX) {
+          // Draw horizontal line at current price level
+          ctx.strokeStyle = this.dragTypeCDK === 'high' ? '#ff5722' : '#4caf50';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          const padding = (canvas.clientHeight - canvas.clientHeight * 0.9) / 2;
+          const y = this.calculateYFromPrice(price, padding);
+          ctx.moveTo(candleX - 15, y);
+          ctx.lineTo(candleX + canvas.clientWidth, y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Draw price label
+          ctx.fillStyle = this.dragTypeCDK === 'high' ? '#ff5722' : '#4caf50';
+          ctx.font = '11px Arial';
+          ctx.textAlign = 'left';
+          ctx.fillText(price.toFixed(2), candleX + 10, y - 5);
+        }
+      }
+    }
+  }
+
+  /**
+   * Setup mouse move listener for real-time price preview during drag
+   */
+  setupDragMouseMoveListener(): void {
+    if (!this.isEditableChart || this.draggedCandleIndex === -1) return;
+
+    const canvas = this.chartCanvas?.nativeElement;
+    if (!canvas) return;
+
+    // Add mousemove listener to canvas for real-time price preview
+    const handleMouseMove = (event: MouseEvent): void => {
+      this.onMouseMoveOnDrag(event);
+    };
+
+    canvas.addEventListener('mousemove', handleMouseMove);
+
+    // Store reference for cleanup
+    (canvas as any)._dragMouseMoveHandler = handleMouseMove;
+  }
+
+  /**
+   * Cleanup drag-related event listeners
+   */
+  cleanupDragListeners(): void {
+    const canvas = this.chartCanvas?.nativeElement;
+    if (!canvas) return;
+
+    if ((canvas as any)._dragMouseMoveHandler) {
+      const handler = (canvas as any)._dragMouseMoveHandler;
+      canvas.removeEventListener('mousemove', handler);
+      delete (canvas as any)._dragMouseMoveHandler;
     }
   }
 
@@ -112,18 +355,6 @@ export class CandleChartComponent implements OnChanges {
     // Prevent default context menu on right click
     canvas.addEventListener('contextmenu', (e: MouseEvent) => e.preventDefault());
 
-    // Mouse down event for starting drag on second chart
-    canvas.addEventListener('mousedown', (e: MouseEvent) => this.onMouseDown(e));
-
-    // Mouse move event for dragging
-    canvas.addEventListener('mousemove', (e: MouseEvent) => this.onMouseMove(e));
-
-    // Mouse up event for ending drag
-    canvas.addEventListener('mouseup', (e: MouseEvent) => this.onMouseUp(e));
-
-    // Mouse leave event to cancel drag
-    canvas.addEventListener('mouseleave', (e: MouseEvent) => this.onMouseLeave(e));
-
     // Click event for chart refresh
     canvas.addEventListener('click', () => {
       if (this.chartInstance) {
@@ -131,6 +362,9 @@ export class CandleChartComponent implements OnChanges {
         this.renderChart();
       }
     });
+
+    // Setup drag mouse move listener for real-time price preview
+    this.setupDragMouseMoveListener();
 
     // Listen for window resize to update canvas size
     this.setupResizeListener(canvas);
@@ -190,113 +424,7 @@ export class CandleChartComponent implements OnChanges {
     (canvas as any)._resizeHandler = handleResize;
   }
 
-  ngOnDestroy(): void {
-    console.log('ngOnDestroy called');
 
-    // Clean up mouse move timeout
-    if (this.mouseMoveTimeout) {
-      clearTimeout(this.mouseMoveTimeout);
-      this.mouseMoveTimeout = null;
-    }
-
-    if (this.chartInstance) {
-      this.chartInstance.destroy();
-    }
-
-    // Clean up canvas event listeners
-    if (this.chartCanvas) {
-      const canvas = this.chartCanvas.nativeElement;
-      if (canvas) {
-        console.log('Cleaning up canvas event listeners');
-
-        // Clean up resize listener
-        if ((canvas as any)._cleanupResize) {
-          (canvas as any)._cleanupResize();
-        }
-
-        canvas.removeEventListener('contextmenu', (e: MouseEvent) => e.preventDefault());
-        canvas.removeEventListener('mousedown', (e: MouseEvent) => this.onMouseDown(e));
-        canvas.removeEventListener('mousemove', (e: MouseEvent) => this.onMouseMove(e));
-        canvas.removeEventListener('mouseup', (e: MouseEvent) => this.onMouseUp(e));
-        canvas.removeEventListener('mouseleave', (e: MouseEvent) => this.onMouseLeave(e));
-      }
-    }
-
-    console.log('ngOnDestroy completed');
-  }
-
-  /**
-   * Handle mouse down event - start drag operation
-   */
-  private onMouseDown(event: MouseEvent): void {
-    console.log('onMouseDown called, event:', { clientX: event.clientX, clientY: event.clientY });
-    // Only enable drag interaction for the editable chart (secondChart)
-    if (!this.isEditableChart) {
-      console.log('onMouseDown: drag not enabled for non-editable chart');
-      return;
-    }
-
-    const canvas = this.chartCanvas?.nativeElement;
-    if (!canvas) {
-      console.error('onMouseDown: canvas not found');
-      return;
-    }
-
-
-
-    if (!this.candles || this.candles.length === 0) {
-      console.log('onMouseDown: no candles to drag');
-      return;
-    }
-
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    console.log('onMouseDown: canvas rect:', rect, 'mouse x,y:', x, y);
-
-    // Check if clicked on a candle wick
-    const candleIndex = this.findCandleAtX(x);
-    if (candleIndex === -1) {
-      console.log('onMouseDown: no candle at x position', x);
-      return;
-    }
-
-    const candle = this.candles[candleIndex];
-    if (!candle) {
-      console.error('onMouseDown: no candle data at index', candleIndex);
-      return;
-    }
-
-    const metrics = this.getChartMetrics();
-    const { minPrice, maxPrice, chartHeight } = metrics;
-
-    const canvasHeight = canvas.clientHeight;
-    // Calculate y positions - higher prices at lower Y values (top of chart)
-    const padding = (canvasHeight - chartHeight) / 2;
-    const yHigh = padding + ((maxPrice - candle.high) / (maxPrice - minPrice)) * chartHeight;
-    const yLow = padding + ((maxPrice - candle.low) / (maxPrice - minPrice)) * chartHeight;
-    const yOpen = padding + ((maxPrice - candle.open) / (maxPrice - minPrice)) * chartHeight;
-    const yClose = padding + ((maxPrice - candle.close) / (maxPrice - minPrice)) * chartHeight;
-
-    console.log('onMouseDown: candle', candleIndex, 'y positions:', { yHigh, yLow, yOpen, yClose });
-
-    // Check if clicked on high wick (top half of wick)
-    const isHigh = y <= (yHigh + yOpen) / 2;
-
-    console.log('onMouseDown: starting drag, candleIndex:', candleIndex, 'type:', isHigh ? 'high' : 'low');
-
-    this.isDragging = true;
-    this.dragStartY = y;
-    this.dragStartCandleIndex = candleIndex;
-    this.dragType = isHigh ? 'high' : 'low';
-
-    // Prevent default to avoid text selection and context menu
-    event.preventDefault();
-
-    // Draw cursor indicator
-    this.drawCursorIndicator(x, y);
-  }
 
   /**
    * Draw a cursor indicator to show which part of the candle is being dragged
@@ -370,257 +498,55 @@ export class CandleChartComponent implements OnChanges {
     }
   }
 
-  /**
-   * Clear the cursor indicator from the canvas
-   */
-  private clearCursorIndicator(): void {
-    const canvas = this.chartCanvas?.nativeElement;
-    if (!canvas || !this.ctx) return;
-
-    // Only clear a small area around the indicator text, not from (0, 0)
-    // This prevents clearing the top portion of the chart where grid lines and candles are drawn
-    if (this.cursorIndicatorY > 0 && this.cursorIndicatorHeight > 0) {
-      // Clear only a small area around the indicator text (not from top-left corner)
-      const clearHeight = this.cursorIndicatorHeight + 10; // Add some buffer
-      // Clear only a small area around the cursor position, not from (0, 0)
-      // The text is drawn at y - 5 for high drag or y + 25 for low drag
-      // We clear from the top of where the text would be drawn (y - 5 for high, y + 25 for low)
-      const textY = this.dragType === 'high' ? this.cursorIndicatorY - 5 : this.cursorIndicatorY + 25;
-      // Only clear if text is within canvas bounds
-      if (textY >= 0) {
-        this.ctx.clearRect(this.cursorIndicatorX - 20, textY - 5, 60, clearHeight);
-      }
-    }
-
-    // Reset cursor indicator position and drag type
-    this.cursorIndicatorX = 0;
-    this.cursorIndicatorY = 0;
-    this.cursorIndicatorHeight = 0;
-    this.dragType = null;
-  }
 
   /**
-   * Handle mouse move event - update candle values during drag
+   * Calculate price from Y position (higher prices at lower Y values)
    */
-  private onMouseMove(event: MouseEvent): void {
-    console.log('onMouseMove called, event:', { clientX: event.clientX, clientY: event.clientY });
-
-    // Only allow drag on editable chart
-    if (!this.isEditableChart) {
-      console.log('onMouseMove: drag not enabled for non-editable chart');
-      return;
-    }
-
-    if (!this.isDragging) {
-      console.log('onMouseMove: not dragging');
-      return;
-    }
-
-    if (this.dragStartCandleIndex === -1) {
-      console.log('onMouseMove: no candle selected');
-      return;
-    }
-
+  private calculatePriceFromY(yPosition: number): number {
     const canvas = this.chartCanvas?.nativeElement;
-    if (!canvas) {
-      console.error('onMouseMove: canvas not found');
-      return;
-    }
+    if (!canvas) return 0;
 
-    // Get canvas position relative to viewport
     const rect = canvas.getBoundingClientRect();
-
-    // Calculate mouse Y position relative to chart area (accounting for padding)
-    const y = event.clientY - rect.top;
+    const yInCanvas = yPosition - rect.top;
 
     // Get chart metrics for proper price calculation
     const metrics = this.getChartMetrics();
-    const { minPrice, maxPrice, chartHeight } = metrics;
+    if (!metrics.minPrice || !metrics.maxPrice) return 0;
 
-    // Calculate padding (top and bottom margins)
+    const { minPrice, maxPrice, chartHeight } = metrics;
     const padding = (canvas.clientHeight - chartHeight) / 2;
 
     // Clamp Y to actual chart bounds
-    const clampedY = Math.max(padding, Math.min(y, padding + chartHeight));
+    const clampedY = Math.max(padding, Math.min(yInCanvas, padding + chartHeight));
 
-    // Calculate new price based on y position (lower Y = higher price)
+    // Calculate normalized Y (0 at top of chart area, 1 at bottom)
     const normalizedY = (clampedY - padding) / chartHeight;
-    let newPrice: number;
 
-    if (this.dragType === 'high') {
-      // For high, lower Y position = higher price
-      newPrice = maxPrice - (normalizedY * (maxPrice - minPrice));
-    } else {
-      // For low, higher Y position = lower price
-      newPrice = minPrice + (normalizedY * (maxPrice - minPrice));
-    }
-
-    console.log('onMouseMove: new price:', newPrice, 'normalizedY:', normalizedY);
-
-    // Update the candle data
-    const candle = this.candles[this.dragStartCandleIndex];
-    if (candle) {
-      const oldHigh = candle.high;
-      const oldLow = candle.low;
-
-      if (this.dragType === 'high') {
-        // High must be >= close price
-        candle.high = Math.max(candle.close, newPrice);
-      } else {
-        // Low must be <= open price
-        candle.low = Math.min(candle.open, newPrice);
-      }
-
-      // Ensure low doesn't exceed high
-      if (candle.low > candle.high) {
-        candle.low = candle.high;
-      }
-
-      // Only emit and re-render if the value actually changed (debounced)
-      const newHigh = this.dragType === 'high' ? candle.high : oldHigh;
-      const newLow = this.dragType === 'low' ? candle.low : oldLow;
-
-      if (newHigh !== oldHigh || newLow !== oldLow) {
-        // Clear any existing timeout
-        if (this.mouseMoveTimeout) {
-          clearTimeout(this.mouseMoveTimeout);
-          this.mouseMoveTimeout = null;
-        }
-
-        // Debounce the emit - wait 10ms after mouse stops moving rapidly
-        this.mouseMoveTimeout = window.setTimeout(() => {
-          // Emit the modified candle (only for second chart)
-          this.candleModified.emit(candle);
-
-          // Re-render the chart
-          setTimeout(() => {
-            this.renderChart();
-          }, 0);
-
-          console.log(`Modified candle ${this.dragStartCandleIndex}: high=${oldHigh} -> ${candle.high}, low=${oldLow} -> ${candle.low}`);
-        }, 10);
-      } else {
-        console.log(`No change in candle ${this.dragStartCandleIndex} at y=${clampedY.toFixed(2)}`);
-      }
-    }
-
-    // Redraw cursor indicator at new position (use event coordinates for proper tracking)
-    this.cursorIndicatorX = 0; // Reset before redrawing
-    this.drawCursorIndicator(rect.left + event.clientX - rect.left, clampedY);
+    // Calculate price: higher Y position = lower price
+    return minPrice + (normalizedY * (maxPrice - minPrice));
   }
 
   /**
-   * Handle mouse up event - end drag operation
+   * Get the candle element to be dragged (for CDK Drag API)
    */
-  private onMouseUp(event: MouseEvent): void {
-    console.log('onMouseUp called, ending drag operation');
+  dragCandle(index: number): any {
+    const candle = this.candles[index];
+    if (!candle) return null;
 
-    this.isDragging = false;
-    this.dragStartY = 0;
-    this.dragStartCandleIndex = -1;
-    this.dragType = null;
+    // Return a DragCandle instance for CDK Drag-Drop
+    const dragItem = new DragCandle(index, candle, null);
 
-    // Clear cursor indicator (cursor position already reset in clearCursorIndicator)
-    this.clearCursorIndicator();
+    // Store the original data for resizing operations
+    this.candleData[index] = { ...candle };
 
-    // Emit the final modified candle if we were dragging
-    if (this.dragStartCandleIndex !== -1 && this.candles[this.dragStartCandleIndex]) {
-      const modifiedCandle = this.candles[this.dragStartCandleIndex];
-      console.log('onMouseUp: emitting final modified candle:', modifiedCandle);
-
-      // Emit the modified candle to parent component
-      this.candleModified.emit(modifiedCandle);
-
-      // Re-render the chart to ensure final state is displayed
-      setTimeout(() => {
-        this.renderChart();
-      }, 0);
-    }
+    return dragItem;
   }
 
   /**
-   * Handle mouse leave event - cancel drag operation
+   * Get the candle list for CDK DropList API
    */
-  private onMouseLeave(event: MouseEvent): void {
-    console.log('onMouseLeave called, cancelling drag operation');
-
-    this.isDragging = false;
-    this.dragStartY = 0;
-    this.dragStartCandleIndex = -1;
-    this.dragType = null;
-
-    // Clear cursor indicator (cursor position already reset in clearCursorIndicator)
-    this.clearCursorIndicator();
-
-    // Emit the final modified candle if we were dragging (even though we're cancelling)
-    if (this.dragStartCandleIndex !== -1 && this.candles[this.dragStartCandleIndex]) {
-      const modifiedCandle = this.candles[this.dragStartCandleIndex];
-      console.log('onMouseLeave: emitting final modified candle:', modifiedCandle);
-
-      // Emit the modified candle to parent component
-      this.candleModified.emit(modifiedCandle);
-
-      // Re-render the chart to ensure final state is displayed
-      setTimeout(() => {
-        this.renderChart();
-      }, 0);
-    }
-  }
-
-  /**
-   * Find the candle index at a given x position
-   */
-  private findCandleAtX(x: number): number {
-    if (!this.candles || this.candles.length === 0) return -1;
-
-    const width = this.chartCanvas?.nativeElement.clientWidth || 800;
-    // Use consistent chart width calculation with drawGrid and drawCandle
-    const yAxisLabelWidth = 60;
-    const chartWidth = width - yAxisLabelWidth - 20; // Adjust for right margin
-    const baseCandleWidth = Math.max(2, chartWidth / this.candles.length - 4);
-    const candleWidth = this.isEditableChart ? baseCandleWidth * 1.4 : baseCandleWidth;
-    const candleSpacing = (chartWidth - candleWidth * this.candles.length) / (this.candles.length + 1);
-
-    for (let i = 0; i < this.candles.length; i++) {
-      const candleX = candleSpacing + (i * (candleWidth + 4));
-      if (x >= candleX && x <= candleX + candleWidth) {
-        return i;
-      }
-    }
-
-    return -1;
-  }
-
-  /**
-   * Helper function to get current chart metrics for drag operations
-   */
-  private getChartMetrics(): {
-    minPrice: number;
-    maxPrice: number;
-    chartHeight: number;
-  } {
-    if (!this.candles || this.candles.length === 0) return {} as any;
-
-    const canvas = this.chartCanvas?.nativeElement;
-    if (!canvas) return {} as any;
-
-    let minPrice = Infinity;
-    let maxPrice = -Infinity;
-
-    this.candles.forEach(candle => {
-      if (candle.low < minPrice) minPrice = candle.low;
-      if (candle.high > maxPrice) maxPrice = candle.high;
-    });
-
-    const priceRange = maxPrice - minPrice;
-    const padding = priceRange * 0.1;
-    minPrice -= padding;
-    maxPrice += padding;
-
-    const chartHeight = canvas.clientHeight * 0.9;
-    const yAxisLabelWidth = 60;
-
-    return { minPrice, maxPrice, chartHeight };
+  dragCandleList(): any {
+    return this.candles;
   }
 
   /**
@@ -882,5 +808,390 @@ export class CandleChartComponent implements OnChanges {
       const x = 60 + (index * spacing); // Start from yAxisLabelWidth position
       ctx.fillText(`Candle ${index + 1}`, x, height - 5);
     });
+  }
+
+  ngOnDestroy(): void {
+    console.log('ngOnDestroy called');
+
+    // Clean up CDK Drag-Drop references
+    this.dragRef = null;
+
+
+    // Clean up drag-related listeners first
+    this.cleanupDragListeners();
+
+    // Clean up mouse move timeout
+    if (this.mouseMoveTimeout) {
+      clearTimeout(this.mouseMoveTimeout);
+      this.mouseMoveTimeout = null;
+    }
+
+    if (this.chartInstance) {
+      this.chartInstance.destroy();
+    }
+
+    // Clean up canvas event listeners
+    if (this.chartCanvas) {
+      const canvas = this.chartCanvas.nativeElement;
+      if (canvas) {
+        console.log('Cleaning up canvas event listeners');
+
+        // Clean up resize listener
+        if ((canvas as any)._cleanupResize) {
+          (canvas as any)._cleanupResize();
+        }
+
+        // Clean up drag mouse move handler
+        if ((canvas as any)._dragMouseMoveHandler) {
+          const handler = (canvas as any)._dragMouseMoveHandler;
+          canvas.removeEventListener('mousemove', handler);
+          delete (canvas as any)._dragMouseMoveHandler;
+        }
+
+        // Clear cursor indicator
+        this.clearCursorIndicator();
+      }
+    }
+
+    console.log('ngOnDestroy completed');
+  }
+
+
+  /**
+   * Handle CDK Drag Start event for candle resizing
+   */
+  onCdkDragStart(event: CdkDragStart): void {
+    console.log('CDK Drag Start:', event);
+
+    const dragRef = (event as any).dragRef;
+    if (!dragRef) {
+      console.log('No drag ref available');
+      return;
+    }
+
+    this.dragRef = dragRef;
+    this.setupDragMouseMoveListener();
+
+    // Get the candle index and type from data attributes
+    const dragElement = event.source.element.nativeElement as HTMLElement;
+    const candleIndexAttr = dragElement.getAttribute('data-candle-index');
+    const dragTypeAttr = dragElement.getAttribute('data-drag-type');
+
+    if (candleIndexAttr) {
+      this.draggedCandleIndex = parseInt(candleIndexAttr, 10);
+    }
+
+    if (dragTypeAttr) {
+      this.dragTypeCDK = dragTypeAttr as 'high' | 'low';
+    }
+
+    console.log('Drag started on candle index:', this.draggedCandleIndex, 'type:', this.dragTypeCDK);
+  }
+
+  /**
+   * Handle CDK Drag End event for candle resizing
+   */
+  onCdkDragEnd(event: CdkDragEnd): void {
+    console.log('CDK Drag End:', event);
+
+    // Clean up drag listeners
+    this.cleanupDragListeners();
+
+    // Get the new position from the drop list
+    const dropList = (event as any).dropList;
+    if (!dropList) {
+      console.log('No drop list available');
+      return;
+    }
+
+    const position = dropList.getItemPosition((event as any).drag);
+    console.log('Drop position:', position);
+
+    // Update the candle data based on drag type and movement
+    if (this.draggedCandleIndex !== -1 && this.candles[this.draggedCandleIndex]) {
+      const candle = this.candles[this.draggedCandleIndex];
+
+      if (this.dragTypeCDK === 'high') {
+        // Dragging high: moving down decreases the high price
+        const movement = position.y;
+        const priceChange = -movement * 0.1; // Sensitivity factor
+
+        let newHigh = Math.max(candle.low, candle.open - priceChange, candle.close - priceChange);
+        newHigh = Math.min(newHigh, candle.high + 10); // Limit the change
+
+        if (newHigh !== candle.high) {
+          this.updateCandleData(this.draggedCandleIndex, { ...candle, high: newHigh });
+          console.log('Updated candle high:', this.draggedCandleIndex, 'from', candle.high, 'to', newHigh);
+        }
+      } else if (this.dragTypeCDK === 'low') {
+        // Dragging low: moving up increases the low price
+        const movement = position.y;
+        const priceChange = -movement * 0.1; // Sensitivity factor
+
+        let newLow = Math.min(candle.high, candle.open + priceChange, candle.close + priceChange);
+        newLow = Math.max(newLow, candle.low - 10); // Limit the change
+
+        if (newLow !== candle.low) {
+          this.updateCandleData(this.draggedCandleIndex, { ...candle, low: newLow });
+          console.log('Updated candle low:', this.draggedCandleIndex, 'from', candle.low, 'to', newLow);
+        }
+      }
+
+      // Emit the modified candle data
+      this.candleModified.emit(this.candles[this.draggedCandleIndex]);
+    }
+
+    // Reset drag state
+    this.dragRef = null;
+    this.draggedCandleIndex = -1;
+    this.dragTypeCDK = null;
+
+    // Clear cursor indicator
+    this.clearCursorIndicator();
+  }
+
+  /**
+   * Handle CDK Drag Over event for drop positioning
+   */
+  onCdkDragOver(event: CdkDragMove): void {
+    // Allow drop over any element (default behavior)
+  }
+
+  /**
+   * Handle CDK Drag Enter event for visual feedback
+   */
+  onCdkDragEnter(event: CdkDragEnter): void {
+    console.log('CDK Drag Enter:', event);
+
+    const dropList = (event as any).dropList;
+    if (!dropList) return;
+
+    const position = dropList.getItemPosition((event as any).drag);
+    console.log('Entered at position:', position);
+
+    // Highlight the element being dragged over
+    const dragElement = event.item.element.nativeElement;
+    if (dragElement) {
+      dragElement.style.opacity = '0.6';
+    }
+  }
+
+  /**
+   * Handle CDK Drag Leave event for visual feedback cleanup
+   */
+  onCdkDragLeave(event: CdkDragExit): void {
+    console.log('CDK Drag Leave:', event);
+
+    const dragElement = event.item.element.nativeElement;
+    if (dragElement) {
+      // Restore opacity when leaving
+      dragElement.style.opacity = '';
+    }
+  }
+
+  /**
+   * Handle CDK Drag Move event for real-time preview
+   */
+  onCdkDragMove(event: CdkDragMove): void {
+    console.log('CDK Drag Move:', event);
+
+    const dropList = (event as any).dropList;
+    if (!dropList) return;
+
+    const position = dropList.getItemPosition((event as any).drag);
+    console.log('Current drag position:', position);
+
+    // Update the cursor indicator in real-time
+    if (this.draggedCandleIndex !== -1 && this.candles[this.draggedCandleIndex]) {
+      const candle = this.candles[this.draggedCandleIndex];
+
+      if (this.dragTypeCDK === 'high') {
+        // Calculate the new high price based on Y position
+        const yPosition = position.y;
+        const priceChange = -yPosition * 0.1;
+
+        let newHigh = Math.max(candle.low, candle.open - priceChange, candle.close - priceChange);
+        newHigh = Math.min(newHigh, candle.high + 10);
+
+        // Update the drag element's tooltip
+        const draggableElement = event.source.element.nativeElement;
+        if (draggableElement) {
+          draggableElement.setAttribute('data-price', newHigh.toFixed(2));
+        }
+
+        // Update cursor indicator to show current price level
+        this.updateCursorIndicator(candle, newHigh);
+      } else if (this.dragTypeCDK === 'low') {
+        // Calculate the new low price based on Y position
+        const yPosition = position.y;
+        const priceChange = -yPosition * 0.1;
+
+        let newLow = Math.min(candle.high, candle.open + priceChange, candle.close + priceChange);
+        newLow = Math.max(newLow, candle.low - 10);
+
+        // Update the drag element's tooltip
+        const draggableElement = event.source.element.nativeElement;
+        if (draggableElement) {
+          draggableElement.setAttribute('data-price', newLow.toFixed(2));
+        }
+
+        // Update cursor indicator to show current price level
+        this.updateCursorIndicator(candle, newLow);
+      }
+    }
+  }
+
+  /**
+   * Handle CDK Drop List dropped event
+   */
+  onCdkDrop(event: CdkDragDrop<CandleData[]>): void {
+    console.log('CDK Drop:', event);
+
+    // Move or remove items from the drop list based on the new position
+    event.container.data.splice(event.currentIndex, 0, ...event.previousContainer.data.splice(event.previousIndex, 1));
+
+    // Re-render the chart with updated data
+    setTimeout(() => {
+      this.renderChart();
+    }, 0);
+  }
+
+  /**
+   * Update the cursor indicator to show current price level during drag
+   */
+  private updateCursorIndicator(candle: CandleData, price: number): void {
+    const canvas = this.chartCanvas?.nativeElement;
+    if (!canvas) return;
+
+    // Clear previous indicator
+    this.clearCursorIndicator();
+
+    // Draw new cursor indicator at current position
+    const ctx = this.ensureCanvasContext();
+    if (ctx) {
+      const candleX = this.getCandlePosition(this.draggedCandleIndex);
+
+      // Draw horizontal line at current price level
+      ctx.strokeStyle = this.dragTypeCDK === 'high' ? '#ff5722' : '#4caf50';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+
+      const padding = (canvas.clientHeight - canvas.clientHeight * 0.9) / 2;
+      const y = this.calculateYFromPrice(price, padding);
+
+      ctx.moveTo(candleX - 15, y);
+      ctx.lineTo(candleX + canvas.clientWidth, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw price label
+      ctx.fillStyle = this.dragTypeCDK === 'high' ? '#ff5722' : '#4caf50';
+      ctx.font = '11px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillText(price.toFixed(2), candleX + 10, y - 5);
+    }
+  }
+
+  /**
+   * Calculate Y position from a price value
+   */
+  private calculateYFromPrice(price: number, padding: number): number {
+    if (!this.candles || this.candles.length === 0) return 0;
+
+    const canvas = this.chartCanvas?.nativeElement;
+    if (!canvas) return 0;
+
+    const metrics = this.getChartMetrics();
+    if (!metrics.minPrice || !metrics.maxPrice) return 0;
+
+    const { minPrice, maxPrice, chartHeight } = metrics;
+    const priceRange = maxPrice - minPrice;
+
+    if (priceRange === 0) {
+      return padding + chartHeight / 2;
+    }
+
+    // Calculate normalized Y (0 at top of chart area, 1 at bottom)
+    const normalizedY = (price - minPrice) / priceRange;
+
+    // Calculate Y position
+    return padding + normalizedY * chartHeight;
+  }
+
+  /**
+   * Update candle data and store it for reference
+   */
+  private updateCandleData(index: number, updatedCandle: CandleData): void {
+    this.candles[index] = updatedCandle;
+    this.candleData[index] = { ...updatedCandle };
+
+    // Store the drag reference for potential future operations
+    if (this.dragRef) {
+      this.dragRef.data = { index, ...updatedCandle };
+    }
+  }
+
+  /**
+   * Clear the cursor indicator from the canvas
+   */
+  private clearCursorIndicator(): void {
+    const canvas = this.chartCanvas?.nativeElement;
+    if (!canvas || !this.ctx) return;
+
+    // Only clear a small area around the indicator text, not from (0, 0)
+    // This prevents clearing the top portion of the chart where grid lines and candles are drawn
+    if (this.cursorIndicatorY > 0 && this.cursorIndicatorHeight > 0) {
+      // Clear only a small area around the indicator text (not from top-left corner)
+      const clearHeight = this.cursorIndicatorHeight + 10; // Add some buffer
+      // Clear only a small area around the cursor position, not from (0, 0)
+      // The text is drawn at y - 5 for high drag or y + 25 for low drag
+      // We clear from the top of where the text would be drawn (y - 5 for high, y + 25 for low)
+      const textY = this.dragTypeCDK === 'high' ? this.cursorIndicatorY - 5 : this.cursorIndicatorY + 25;
+      // Only clear if text is within canvas bounds
+      if (textY >= 0) {
+        this.ctx.clearRect(this.cursorIndicatorX - 20, textY - 5, 60, clearHeight);
+      }
+    }
+
+    // Reset cursor indicator position and drag type
+    this.cursorIndicatorX = 0;
+    this.cursorIndicatorY = 0;
+    this.cursorIndicatorHeight = 0;
+    this.dragTypeCDK = null;
+  }
+
+
+
+  /**
+   * Helper function to get current chart metrics for drag operations
+   */
+  private getChartMetrics(): {
+    minPrice: number;
+    maxPrice: number;
+    chartHeight: number;
+  } {
+    if (!this.candles || this.candles.length === 0) return {} as any;
+
+    const canvas = this.chartCanvas?.nativeElement;
+    if (!canvas) return {} as any;
+
+    let minPrice = Infinity;
+    let maxPrice = -Infinity;
+
+    this.candles.forEach(candle => {
+      if (candle.low < minPrice) minPrice = candle.low;
+      if (candle.high > maxPrice) maxPrice = candle.high;
+    });
+
+    const priceRange = maxPrice - minPrice;
+    const padding = priceRange * 0.1;
+    minPrice -= padding;
+    maxPrice += padding;
+
+    const chartHeight = canvas.clientHeight * 0.9;
+    const yAxisLabelWidth = 60;
+
+    return { minPrice, maxPrice, chartHeight };
   }
 }

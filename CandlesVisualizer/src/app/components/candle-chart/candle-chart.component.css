@@ -72,3 +72,225 @@ main {
 .editable-chart {
   border-color: #007bff !important;
 }
+
+/* CDK Drag-Drop Styles */
+
+.chart-container {
+  position: relative;
+}
+
+/* CDK Drop List container */
+.cdk-drop-list-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+}
+
+/* CDK Drag items (high and low wick areas) */
+.cdk-drag {
+  position: absolute;
+  width: 2px;
+  cursor: ns-resize !important;
+  z-index: 15;
+}
+
+/* High wick drag area */
+.cdk-drag.high-drag-area {
+  top: 0;
+  height: 50%;
+}
+
+/* Low wick drag area */
+.cdk-drag.low-drag-area {
+  top: 50%;
+  height: 50%;
+}
+
+/* Wick guide lines (visual indicator of drag area) */
+.wick-guide-line {
+  position: absolute;
+  left: -10px;
+  right: -10px;
+  width: auto;
+  background: rgba(255, 152, 0, 0.2);
+}
+
+/* Hide CDK drag handles by default */
+.cdk-drag-handle {
+  display: none !important;
+}
+
+/* Show drag handles on hover */
+.cdk-drag:hover .cdk-drag-handle {
+  display: block !important;
+}
+
+/* Active drag state */
+.cdk-drag-cdka .cdk-drag-handle {
+  display: block !important;
+}
+
+/* Add glow effect when dragging */
+.cdk-drag-cdka {
+  box-shadow: 0 0 15px rgba(255, 87, 34, 0.6);
+}
+
+/* Ensure overlay elements don't interfere with canvas rendering */
+.cdk-drop-list,
+.cdk-drag {
+  pointer-events: none;
+}
+
+/* Allow drag elements to receive mouse events */
+.cdk-drag {
+  pointer-events: auto;
+}
+
+/* Custom cursor for high wick drag (up arrow) */
+.cdk-drag[data-drag-type="high"] {
+  cursor: ns-resize !important;
+}
+
+/* Custom cursor for low wick drag (down arrow) */
+.cdk-drag[data-drag-type="low"] {
+  cursor: ns-resize !important;
+}
+
+/* Drag feedback styling */
+.cdk-drag-cdka {
+  opacity: 0.8;
+}
+
+/* Highlight candle when dragging over it */
+.cdk-drag-cdka .cdk-drop-list-dragging {
+  box-shadow: 0 0 15px rgba(255, 152, 0, 0.6);
+}
+
+/* High wick drag indicator (top half) */
+.cdk-drag[data-drag-type="high"] .cdk-drag-handle.high-indicator {
+  background: #ff5722;
+}
+
+/* Low wick drag indicator (bottom half) */
+.cdk-drag[data-drag-type="low"] .cdk-drag-handle.low-indicator {
+  background: #4caf50;
+}
+
+/* Drag arrow indicators */
+.drag-arrow {
+  pointer-events: none;
+}
+
+/* Tooltip showing price when hovering over drag handle */
+.cdk-drag:hover::before {
+  content: attr(data-price);
+  position: absolute;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.cdk-drag[data-drag-type="high"]:hover::before {
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.cdk-drag[data-drag-type="low"]:hover::before {
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Price tooltip for high drag */
+.cdk-drag[data-drag-type="high"].cdk-drag-cdka::before {
+  background: #ff5722;
+}
+
+/* Price tooltip for low drag */
+.cdk-drag[data-drag-type="low"].cdk-drag-cdka::before {
+  background: #4caf50;
+}
+
+/* Cursor indicator line (dashed horizontal line showing price level) */
+.cursor-indicator-line {
+  position: absolute;
+  pointer-events: none;
+  stroke-width: 1;
+  stroke-dasharray: 5, 5;
+}
+
+/* Cursor indicator price label */
+.cursor-indicator-label {
+  position: absolute;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: white;
+  font-weight: bold;
+}
+
+/* Highlight the candle being dragged */
+.cdk-drag-cdka {
+  opacity: 0.8;
+}
+
+/* Add a subtle background to drag areas */
+.cdk-drag {
+  background: rgba(255, 152, 0, 0.1);
+}
+
+/* Make drag areas more visible on hover */
+.cdk-drag:hover {
+  background: rgba(255, 152, 0, 0.2);
+}
+
+/* High drag area specific styling */
+.cdk-drag[data-drag-type="high"] {
+  background: rgba(255, 87, 34, 0.1);
+}
+
+.cdk-drag[data-drag-type="high"]:hover {
+  background: rgba(255, 87, 34, 0.2);
+}
+
+/* Low drag area specific styling */
+.cdk-drag[data-drag-type="low"] {
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.cdk-drag[data-drag-type="low"]:hover {
+  background: rgba(76, 175, 80, 0.2);
+}
+
+/* Drag handle glow effect */
+.cdk-drag-cdka .cdk-drag-handle {
+  box-shadow: 0 0 10px currentColor;
+}
+
+/* Smooth transitions for all drag elements */
+.cdk-drag,
+.cdk-drag-handle,
+.wick-guide-line {
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+/* Ensure drag elements are above the canvas but below other UI elements */
+.cdk-drag-drop-cnt {
+  z-index: 10;
+}
+
+/* Prevent text selection during drag */
+.cdk-drag,
+.cdk-drag-handle {
+  user-select: none;
+  -webkit-user-select: none;
+}

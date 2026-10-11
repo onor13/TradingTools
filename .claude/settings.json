@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "write": [
+      {
+        "pattern": "*.ts",
+        "prompt": true
+      }
+    ]
+  }
+}
