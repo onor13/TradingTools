@@ -1,4 +1,4 @@
-import { Component, Input, ViewChild, ElementRef, OnChanges, SimpleChanges } from '@angular/core';
+import {Component, ElementRef, Input, OnChanges, SimpleChanges, ViewChild} from '@angular/core';
 
 export interface CandleData {
   open: number;
@@ -38,21 +38,6 @@ export class DataChartComponent implements OnChanges {
         this.renderChart();
       }
     }, 0);
-  }
-
-  getCandlePosition(index: number): number {
-    if (!this.candles || !this.chartCanvas) return 0;
-
-    const canvas = this.chartCanvas.nativeElement;
-    const width = canvas.clientWidth;
-    const yAxisLabelWidth = 60;
-    const chartWidth = width - yAxisLabelWidth - 20;
-
-    const baseCandleWidth = Math.max(2, chartWidth / this.candles.length - 4);
-    const candleWidth = baseCandleWidth;
-    const candleSpacing = (chartWidth - candleWidth * this.candles.length) / (this.candles.length + 1);
-
-    return candleSpacing + (index * (candleWidth + 4));
   }
 
   private initializeCanvasEvents(): void {
@@ -142,8 +127,7 @@ export class DataChartComponent implements OnChanges {
 
     const totalCandles = this.candles.length;
     const baseChartWidth = width - 40;
-    const baseCandleWidth = Math.max(2, baseChartWidth / totalCandles - 4);
-    const candleWidth = baseCandleWidth;
+    const candleWidth = Math.max(2, baseChartWidth / totalCandles - 4);
     const candleSpacing = (baseChartWidth - candleWidth * totalCandles) / (totalCandles + 1);
 
     const yAxisLabelWidth = 60;

@@ -44,21 +44,6 @@ export class EditableChartComponent implements OnChanges {
     }, 0);
   }
 
-  getCandlePosition(index: number): number {
-    if (!this.candles || !this.chartCanvas) return 0;
-
-    const canvas = this.chartCanvas.nativeElement;
-    const width = canvas.clientWidth;
-    const yAxisLabelWidth = 60;
-    const chartWidth = width - yAxisLabelWidth - 20;
-
-    const baseCandleWidth = Math.max(2, chartWidth / this.candles.length - 4);
-    const candleWidth = this.isEditableChart ? baseCandleWidth * 1.4 : baseCandleWidth;
-    const candleSpacing = (chartWidth - candleWidth * this.candles.length) / (this.candles.length + 1);
-
-    return candleSpacing + (index * (candleWidth + 4));
-  }
-
   private initializeCanvasEvents(): void {
     if (!this.chartCanvas) return;
 
