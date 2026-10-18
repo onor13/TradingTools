@@ -5,7 +5,7 @@ import { provideZoneChangeDetection } from '@angular/core';
 
 bootstrapApplication(AppComponent, {
     providers: [
-        provideZoneChangeDetection(),
+        provideZoneChangeDetection({ eventCoalescing: true }),
         provideHttpClient() // Add it here
     ]
 }).catch((err) => console.error(err));
