@@ -111,7 +111,7 @@ The application includes a "Transfer Data" button that allows you to move candle
 - Java 25
 
 ### Frontend
-- Angular 18
-- TypeScript 5.4
+- Angular 21
+- TypeScript 5.9
 - Canvas API for chart rendering
 - Angular CDK Drag-Drop for interactive editing
