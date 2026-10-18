@@ -1,7 +1,6 @@
 import { Component, OnInit, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
-import { DragDropModule, CdkDrag, CdkDropList } from '@angular/cdk/drag-drop';
 import { CandlesDataService, CandleData } from './services';
 import { DataChartComponent } from './components/data-chart';
 import { EditableChartComponent } from './components/editable-chart';
@@ -15,7 +14,7 @@ export interface CandlesResponse {
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
   standalone: true,
-  imports: [CommonModule, HttpClientModule, DragDropModule, CdkDrag, CdkDropList, DataChartComponent, EditableChartComponent]
+  imports: [CommonModule, HttpClientModule, DataChartComponent, EditableChartComponent]
 })
 export class AppComponent implements OnInit {
   title = 'Candles Visualizer';

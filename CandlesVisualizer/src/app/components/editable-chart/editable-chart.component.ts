@@ -1,5 +1,4 @@
 import { Component, Input, ViewChild, ElementRef, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
-import { CdkDrag, CdkDropList } from '@angular/cdk/drag-drop';
 
 export interface CandleData {
   open: number;
@@ -13,8 +12,7 @@ export interface CandleData {
   selector: 'app-editable-chart',
   templateUrl: './editable-chart.component.html',
   styleUrls: ['./editable-chart.component.css'],
-  standalone: true,
-  imports: [CdkDropList, CdkDrag]
+  standalone: true
 })
 export class EditableChartComponent implements OnChanges {
   @Input() candles: CandleData[] = [];
