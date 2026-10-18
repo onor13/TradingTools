@@ -40,13 +40,22 @@ export class AppComponent implements OnInit {
     this.candlesService.getCandles()
       .subscribe({
         next: (response) => {
+          console.log('Loaded candles:', response.candles?.length || 0);
           this.candles = response.candles || [];
-          this.calculatePriceRange();
+          if (this.candles.length > 0) {
+            this.calculatePriceRange();
+          }
           this.isLoading = false;
         },
         error: (err) => {
           console.error('Error loading candles:', err);
-          this.error = 'Failed to load candle data. Please check the backend API.';
+          this.error = 'Failed to load candle data from API. Using mock data.';
+          // Use mock data as fallback
+          const mockCandles: CandleData[] = [
+            { open: 510.0, close: 500.0, low: 480.0, high: 515.0, direction: 'DOWN' }
+          ];
+          this.candles = mockCandles;
+          this.calculatePriceRange();
           this.isLoading = false;
         }
       });

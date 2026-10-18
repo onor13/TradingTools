@@ -23,8 +23,10 @@ export class DataChartComponent implements OnChanges {
   @ViewChild('chartCanvas', { static: false }) chartCanvas!: ElementRef<HTMLCanvasElement>;
 
   ngOnChanges(changes: SimpleChanges): void {
+    console.log('DataChartComponent ngOnChanges:', changes);
     if (changes['candles']) {
       const currCandles = changes['candles'].currentValue;
+      console.log('Received candles:', currCandles?.length || 0, 'items');
       if (currCandles && currCandles.length > 0) {
         setTimeout(() => this.renderChart(), 0);
       }
@@ -32,12 +34,14 @@ export class DataChartComponent implements OnChanges {
   }
 
   ngOnInit(): void {
+    console.log('DataChartComponent ngOnInit - candles:', this.candles?.length || 0);
     setTimeout(() => {
       this.initializeCanvasEvents();
       if (this.candles && this.candles.length > 0) {
+        console.log('Rendering chart in ngOnInit');
         this.renderChart();
       }
-    }, 0);
+    }, 100);
   }
 
   private initializeCanvasEvents(): void {
@@ -93,20 +97,34 @@ export class DataChartComponent implements OnChanges {
 
   private ensureCanvasContext(): CanvasRenderingContext2D | null {
     const canvas = this.chartCanvas?.nativeElement;
-    if (!canvas) return null;
-    if (!this.ctx) this.ctx = canvas.getContext('2d');
+    if (!canvas) {
+      console.log('ensureCanvasContext: No chartCanvas element');
+      return null;
+    }
+    if (!this.ctx) {
+      this.ctx = canvas.getContext('2d');
+      console.log('ensureCanvasContext: Created 2D context');
+    }
     return this.ctx;
   }
 
   renderChart(): void {
-    if (!this.candles || !this.candles.length) return;
+    if (!this.candles || !this.candles.length) {
+      console.log('renderChart: No candles to render');
+      return;
+    }
 
     const ctx = this.ensureCanvasContext();
-    if (!ctx) return;
+    if (!ctx) {
+      console.log('renderChart: No canvas context available');
+      return;
+    }
 
     const canvas = this.chartCanvas.nativeElement!;
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
+    const width = canvas.clientWidth || canvas.width;
+    const height = canvas.clientHeight || canvas.height;
+
+    console.log('renderChart: Rendering with', this.candles.length, 'candles, canvas size:', width, 'x', height);
 
     ctx.fillStyle = '#fafafa';
     ctx.clearRect(0, 0, width, height);
