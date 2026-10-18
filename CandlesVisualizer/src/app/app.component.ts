@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { DragDropModule, CdkDrag, CdkDropList } from '@angular/cdk/drag-drop';
-import { CandlesDataService, CandleData } from './services/candles-data.service';
-import { CandleChartComponent } from './components/candle-chart/candle-chart.component';
+import { CandlesDataService, CandleData } from './services';
+import { DataChartComponent } from './components/data-chart';
+import { EditableChartComponent } from './components/editable-chart';
 
 export interface CandlesResponse {
   candles: CandleData[];
@@ -14,7 +15,7 @@ export interface CandlesResponse {
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
   standalone: true,
-  imports: [CommonModule, HttpClientModule, DragDropModule, CdkDrag, CdkDropList, CandleChartComponent]
+  imports: [CommonModule, HttpClientModule, DragDropModule, CdkDrag, CdkDropList, DataChartComponent, EditableChartComponent]
 })
 export class AppComponent implements OnInit {
   title = 'Candles Visualizer';
@@ -24,7 +25,7 @@ export class AppComponent implements OnInit {
   minPrice!: number;
   maxPrice!: number;
 
-  // Shared data for the second chart
+  // Shared data for the second chart - direct property binding
   transferredCandles: CandleData[] = [];
 
   constructor(private candlesService: CandlesDataService) {}
@@ -59,28 +60,41 @@ export class AppComponent implements OnInit {
   transferData(): void {
     // Transfer candles data to the second chart via shared property
     if (this.candles.length > 0) {
+      console.log('=== TRANSFER DATA BUTTON CLICKED ===');
       console.log('Transferring', this.candles.length, 'candles to second chart');
+
       // Create a deep copy of candles array with independent candle objects
-      this.transferredCandles = this.candles.map(candle => ({
+      const newCandles = this.candles.map(candle => ({
         open: candle.open,
         close: candle.close,
         low: candle.low,
         high: candle.high,
         direction: candle.direction
       }));
+
+      console.log('Created new candles array with', newCandles.length, 'items');
+
+      // Set the transferred candles directly - this triggers ngOnChanges in child component
+      this.transferredCandles = newCandles;
+
     } else {
       console.log('No data to transfer');
     }
   }
 
   onCandleModified(candle: CandleData): void {
+    console.log('onCandleModified called with:', candle);
+
     // Find the index of the modified candle in transferredCandles
     const index = this.transferredCandles.findIndex(c => c === candle || c.high === candle.high && c.low === candle.low);
 
     if (index !== -1) {
       // Update the transferredCandles array with modified values
       this.transferredCandles[index] = { ...this.transferredCandles[index], ...candle };
-      console.log('Candle modified in second chart:', candle);
+      console.log('Updated transferredCandles at index', index, ':', this.transferredCandles[index]);
+      console.log('transferredCandles after update:', this.transferredCandles);
+    } else {
+      console.warn('Could not find candle in transferredCandles:', candle);
     }
   }
 

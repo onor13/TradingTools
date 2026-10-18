@@ -16,7 +16,7 @@
     } @else {
       <div style="width: 100%; max-width: 100%;">
         <h3 style="text-align: center; color: #666;">dataChart</h3>
-        <app-candle-chart [candles]="candles" [isEditableChart]="false"></app-candle-chart>
+        <app-data-chart [candles]="candles"></app-data-chart>
       </div>
 
       <div style="text-align: center; margin: 20px 0;">
@@ -26,7 +26,7 @@
       <!-- Second chart that will display transferred data -->
       <div style="margin-top: 20px; width: 100%; max-width: 100%;">
         <h3 style="text-align: center; color: #666;">Editable Chart (secondChart) - Click and drag on candle wicks to modify high/low values</h3>
-        <app-candle-chart #secondChart [candles]="transferredCandles" [isEditableChart]="true" (candleModified)="onCandleModified($event)"></app-candle-chart>
+        <app-editable-chart [candles]="transferredCandles" (candleModified)="onCandleModified($event)"></app-editable-chart>
       </div>
     }
   </main>

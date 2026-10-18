@@ -16,7 +16,9 @@ CandlesVisualizer/
 ├── src/
 │   ├── app/
 │   │   ├── components/
-│   │   │   └── candle-chart/      # Candlestick chart component
+│   │   │   ├── data-chart/         # Read-only candlestick chart component
+│   │   │   ├── editable-chart/     # Editable candlestick chart with drag-drop
+│   │   │   └── candle-chart/       # Legacy (deprecated)
 │   │   ├── services/
 │   │   │   └── candles-data.service.ts  # API service
 │   │   ├── app.component.*        # Main application component
@@ -68,7 +70,39 @@ The frontend will be available at `http://localhost:4200`
 - **Color Coding**: Green candles for upward movement, red for downward
 - **Responsive Design**: Adapts to different screen sizes
 - **Refresh Button**: Reload candle data
-- **Transfer Data Button**: Transfer candle data from the dataChart to a secondChart for comparison or analysis
+- **Transfer Data Button**: Transfer candle data from the read-only chart to an editable chart
+
+## Component Architecture
+
+The application uses two separate chart components:
+
+### `app-data-chart` (Read-only)
+- Displays candlestick charts with OHLC data
+- Shows price labels and grid lines
+- Green candles for upward movement, red for downward
+- Fixed width: 800px × 400px
+- No interactive editing capabilities
+
+### `app-editable-chart` (Editable)
+- Same visualization as data-chart but with drag-drop functionality
+- Allows users to click and drag on candle wicks to modify high/low values
+- Wider canvas: 1920px × 600px for better editing experience
+- Uses Angular CDK Drag-Drop library for smooth interactions
+- Emits `candleModified` events when candles are edited
+
+## Data Transfer Feature
+
+The application includes a "Transfer Data" button that allows you to move candle data from the read-only chart to an editable chart. This is useful for:
+
+- **Comparison**: View the same data in two separate charts
+- **Analysis**: Copy data to an editable chart for further manipulation or testing
+- **Demonstration**: Show how the chart renders with different data sets and editing capabilities
+
+**How to use:**
+1. Load candle data (automatic on page load or click "Refresh")
+2. Click the "Transfer Data" button located between the two charts
+3. The editable chart will populate with the same candle data
+4. Click and drag on candle wicks in the editable chart to modify high/low values
 
 ## Technologies Used
 
@@ -80,16 +114,4 @@ The frontend will be available at `http://localhost:4200`
 - Angular 18
 - TypeScript 5.4
 - Canvas API for chart rendering
-
-## Data Transfer Feature
-
-The application includes a "Transfer Data" button that allows you to move candle data from the first chart (displaying loaded data) to a second empty chart. This is useful for:
-
-- **Comparison**: View the same data in two separate charts
-- **Analysis**: Copy data to a blank chart for further manipulation or testing
-- **Demonstration**: Show how the chart renders with different data sets
-
-**How to use:**
-1. Load candle data (automatic on page load or click "Refresh")
-2. Click the "Transfer Data" button located between the two charts
-3. The second chart will populate with the same candle data
+- Angular CDK Drag-Drop for interactive editing

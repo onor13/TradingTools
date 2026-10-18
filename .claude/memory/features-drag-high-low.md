@@ -5,49 +5,43 @@ metadata:
   type: project
 ---
 
-## Drag High and Drag Low Features (secondChart)
+## Drag High and Drag Low Features (Editable Chart)
 
-**Location:** `CandlesVisualizer/src/app/components/candle-chart/candle-chart.component.ts`
+**Location:** `CandlesVisualizer/src/app/components/editable-chart/editable-chart.component.ts`
 
 ### Overview
-Interactive drag features on the second chart (editable chart) that allow users to modify candle high and low values by clicking and dragging on the wicks.
+Interactive drag features on the editable chart that allow users to modify candle high and low values by clicking and dragging on the wicks. This feature is implemented using Angular CDK Drag-Drop library.
 
 ### How It Works
 - **Drag High**: Click on the top half of a candle's wick and drag up/down to adjust the high value
 - **Drag Low**: Click on the bottom half of a candle's wick and drag up/down to adjust the low value
 
 ### Implementation Details
-- **Detection** (`onMouseDown`, line 277): Determines drag type based on click position
-  ```typescript
-  const isHigh = y <= (yHigh + yOpen) / 2; // true = high drag, false = low drag
-  ```
-
-- **Indicator Drawing** (`drawCursorIndicator`, lines 296-348):
+- Uses Angular CDK Drag-Drop (`CdkDrag`, `CdkDropList`) for smooth drag interactions
+- **Detection** (`ngOnChanges`): Re-renders chart when candles change for editable charts
+- **Indicator Drawing**: Canvas-based cursor indicators show drag state
   - **High drag**: Draws upward-pointing triangle + "Drag High" label at top of wick
   - **Low drag**: Draws downward-pointing triangle + "Drag Low" label at bottom of wick
   - Horizontal line shows current drag level across entire canvas
 
-- **Price Calculation** (`onMouseMove`, lines 404-410):
+- **Price Calculation** (`renderChart`):
   - High: Lower Y position = higher price (`newPrice = maxPrice - normalizedY * range`)
   - Low: Higher Y position = lower price (`newPrice = minPrice + normalizedY * range`)
 
-- **Constraints** (lines 420-431):
+- **Constraints**:
   - High must be >= close price: `candle.high = Math.max(candle.close, newPrice)`
   - Low must be <= open price: `candle.low = Math.min(candle.open, newPrice)`
   - Ensures low never exceeds high
 
-### Bug Fix (Oct 4, 2025)
-**Issue**: Drag Low feature not working - bottom wick disappeared when attempting to drag.
-
-**Root Cause**: 
-1. `drawCursorIndicator` didn't clear canvas before drawing, causing indicator accumulation
-2. `clearCursorIndicator` only cleared top portion of canvas (100px), missing low indicators drawn at bottom
-
-**Fix**: 
-- `drawCursorIndicator`: Added `ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight)` before drawing
-- `clearCursorIndicator`: Changed to clear entire canvas height instead of fixed 100px area
-
 ### Related Files
-- `CandlesVisualizer/src/app/components/candle-chart/candle-chart.component.ts` - Main implementation
-- `CandlesVisualizer/src/app/components/candle-chart/candle-chart.component.html` - Canvas template
-- `CandlesVisualizer/src/app/app.component.html` - Second chart usage (line 28)
+- `CandlesVisualizer/src/app/components/editable-chart/editable-chart.component.ts` - Main implementation
+- `CandlesVisualizer/src/app/components/editable-chart/editable-chart.component.html` - Canvas template
+- `CandlesVisualizer/src/app/components/data-chart/data-chart.component.ts` - Read-only chart (no drag features)
+- `CandlesVisualizer/src/app/app.component.html` - Component usage
+
+### Migration Notes (Oct 18, 2026)
+The candle chart was refactored from a single shared component into two separate components:
+- `app-data-chart`: Read-only chart for displaying data
+- `app-editable-chart`: Editable chart with drag-drop functionality
+
+The old `candle-chart` component has been deprecated and removed.

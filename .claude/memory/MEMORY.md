@@ -1,1 +1,1 @@
-- [Drag High and Drag Low Features](features-drag-high-low.md) — Interactive wick dragging on secondChart
+- [Drag High and Drag Low Features](features-drag-high-low.md) — Interactive wick dragging on editable chart (app-editable-chart)

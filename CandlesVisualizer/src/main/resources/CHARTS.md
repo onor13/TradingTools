@@ -2,35 +2,47 @@
 
 ## Overview
 
-This module contains two candlestick charts:
+This module contains two separate candlestick chart components:
 
-### 1. `dataChart` (Primary Chart)
-- **Location**: `app.component.html` - First `<app-candle-chart>` component
+### 1. `dataChart` (Read-only Chart)
+- **Location**: `app.component.html` - First `<app-data-chart>` component
 - **Purpose**: Displays actual candle data from the backend API
 - **Data Source**: Bound to `candles` array (populated via `/api/candles` endpoint)
 - **Behavior**: Renders candlesticks with open, close, high, low values
+- **Component**: `app-data-chart` (800px × 400px canvas)
 
-### 2. `secondChart` (Empty Chart)
-- **Location**: `app.component.html` - Second `<app-candle-chart>` component (below dataChart)
-- **Purpose**: Empty placeholder chart for future use or reference
-- **Data Source**: Bound to empty array `[]` (no data)
-- **Behavior**: Renders as an empty canvas with dashed border and light gray background
+### 2. `editableChart` (Editable Chart)
+- **Location**: `app.component.html` - Second `<app-editable-chart>` component (below dataChart)
+- **Purpose**: Displays transferred candle data with interactive editing capabilities
+- **Data Source**: Bound to `transferredCandles` array (populated via "Transfer Data" button)
+- **Behavior**: 
+  - Renders candlesticks with open, close, high, low values
+  - Allows users to click and drag on candle wicks to modify high/low prices
+  - Emits `candleModified` events when candles are edited
+- **Component**: `app-editable-chart` (1920px × 600px canvas)
 
 ## Component Structure
 
 ```
-app.component.html
-├── dataChart (candles: populated)
-│   └── <app-candle-chart [candles]="candles"></app-candle-chart>
-└── secondChart (candles: empty)
-    └── <app-candle-chart [candles]="[]"></app-candle-chart>
+src/app/components/
+├── data-chart/
+│   ├── data-chart.component.ts      # Read-only chart component
+│   ├── data-chart.component.html    # Template
+│   └── data-chart.component.css     # Styles
+├── editable-chart/
+│   ├── editable-chart.component.ts  # Editable chart with CDK drag-drop
+│   ├── editable-chart.component.html # Template
+│   └── editable-chart.component.css # Styles
+└── candle-chart/                    # Legacy (deprecated)
 ```
 
 ## Reference Guide
 
 When referencing charts in future work:
 
-- **dataChart** = the chart with actual candle data (top)
-- **secondChart** = the empty placeholder chart (bottom)
+- **dataChart** = the read-only chart with actual candle data (top)
+- **editableChart** = the editable chart for data manipulation (bottom)
 
-Both charts use the same `app-candle-chart` component but with different data bindings.
+The two charts use separate components optimized for their specific use cases:
+- `app-data-chart`: Simple, lightweight display of candle data
+- `app-editable-chart`: Full-featured with CDK drag-drop for interactive editing
