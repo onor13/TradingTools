@@ -157,8 +157,6 @@ export class DataChartComponent implements OnChanges {
       const x = candleSpacing + (index * (candleWidth + 4));
       this.drawCandle(ctx, x, candle, minPrice, maxPrice, chartHeight, width, height, candleWidth, candleSpacing);
     });
-
-    this.drawTimeLabels(ctx, width, height);
   }
 
   drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, minPrice: number, maxPrice: number, chartHeight: number = height * 0.9): void {
@@ -216,25 +214,5 @@ export class DataChartComponent implements OnChanges {
     ctx.beginPath();
     ctx.arc(x + candleWidth / 2, yClose, 3, 0, Math.PI * 2);
     ctx.fill();
-  }
-
-  drawTimeLabels(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-    const totalCandles = this.candles.length;
-    if (totalCandles <= 1) return;
-
-    const chartWidth = width - 60;
-    const candleWidth = Math.max(2, chartWidth / totalCandles);
-    const spacing = candleWidth + 4;
-
-    ctx.fillStyle = '#999';
-    ctx.font = '10px Arial';
-    ctx.textAlign = 'center';
-
-    const labelIndices = [0, Math.floor(totalCandles / 2), totalCandles - 1];
-
-    labelIndices.forEach(index => {
-      const x = 60 + (index * spacing);
-      ctx.fillText(`Candle ${index + 1}`, x, height - 5);
-    });
   }
 }
