@@ -1,4 +1,4 @@
-import { Component, Input, ViewChild, ElementRef, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
+import {Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild} from '@angular/core';
 
 export interface CandleData {
   open: number;
@@ -16,7 +16,6 @@ export interface CandleData {
 })
 export class EditableChartComponent implements OnChanges {
   @Input() candles: CandleData[] = [];
-  @Input() isEditableChart: boolean = true;
 
   @Output() candleModified = new EventEmitter<CandleData>();
 
@@ -29,7 +28,7 @@ export class EditableChartComponent implements OnChanges {
     if (changes['candles']) {
       const currCandles = changes['candles'].currentValue;
       // Always re-render when candles change for editable chart
-      if (this.isEditableChart && currCandles && currCandles.length > 0) {
+      if (currCandles && currCandles.length > 0) {
         this.renderChart();
       }
     }
@@ -131,8 +130,7 @@ export class EditableChartComponent implements OnChanges {
 
     const totalCandles = this.candles.length;
     const baseChartWidth = width - 40;
-    const baseCandleWidth = Math.max(2, baseChartWidth / totalCandles - 4);
-    const candleWidth = this.isEditableChart ? baseCandleWidth * 1.4 : baseCandleWidth;
+    const candleWidth = Math.max(2, baseChartWidth / totalCandles - 4);
     const candleSpacing = (baseChartWidth - candleWidth * totalCandles) / (totalCandles + 1);
 
     const yAxisLabelWidth = 60;
