@@ -15,8 +15,8 @@
       <div class="empty-state">No candle data available</div>
     } @else {
       <div style="width: 100%; max-width: 100%;">
-        <h3 style="text-align: center; color: #666;">dataChart</h3>
-        <app-data-chart [candles]="candles"></app-data-chart>
+        <h3 style="text-align: center; color: #666;">This chart contains candlesticks loaded from the backend data</h3>
+        <app-data-chart id="dataChart" [candles]="candles"></app-data-chart>
       </div>
 
       <div style="text-align: center; margin: 20px 0;">
@@ -25,8 +25,8 @@
 
       <!-- Second chart that will display transferred data -->
       <div style="margin-top: 20px; width: 100%; max-width: 100%;">
-        <h3 style="text-align: center; color: #666;">Editable Chart (secondChart) - Click and drag on candle wicks to modify high/low values</h3>
-        <app-editable-chart [candles]="transferredCandles" (candleModified)="onCandleModified($event)"></app-editable-chart>
+        <h3 style="text-align: center; color: #666;">Editable Chart - Click and drag on candle wicks to modify high/low values</h3>
+        <app-editable-chart id="editableChart" [candles]="transferredCandles" (candleModified)="onCandleModified($event)"></app-editable-chart>
       </div>
     }
   </main>

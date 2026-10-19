@@ -1,6 +1,6 @@
 ---
 name: drag-high-low-features
-description: Documentation for Drag High and Drag Low features in secondChart
+description: Documentation for Drag High and Drag Low features in editableChart
 metadata:
   type: project
 ---
