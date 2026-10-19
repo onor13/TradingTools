@@ -143,7 +143,7 @@ export class EditableChartComponent implements OnChanges {
       this.drawCandle(ctx, x, candle, minPrice, maxPrice, chartHeight, width, height, candleWidth, candleSpacing);
     });
 
-    this.drawTimeLabels(ctx, width, height);
+    this.drawCandleIndexes(ctx, width, height);
   }
 
   drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, minPrice: number, maxPrice: number, chartHeight: number = height * 0.9): void {
@@ -203,23 +203,23 @@ export class EditableChartComponent implements OnChanges {
     ctx.fill();
   }
 
-  drawTimeLabels(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  drawCandleIndexes(ctx: CanvasRenderingContext2D, width: number, height: number): void {
     const totalCandles = this.candles.length;
     if (totalCandles <= 1) return;
 
-    const chartWidth = width - 60;
-    const candleWidth = Math.max(2, chartWidth / totalCandles);
-    const spacing = candleWidth + 4;
+    // Use the same calculations as renderChart to align labels with candles
+    const baseChartWidth = width - 40;
+    const candleWidth = Math.max(2, baseChartWidth / totalCandles - 4);
+    const candleSpacing = (baseChartWidth - candleWidth * totalCandles) / (totalCandles + 1);
 
     ctx.fillStyle = '#999';
-    ctx.font = '10px Arial';
+    ctx.font = '20px Arial';
     ctx.textAlign = 'center';
 
-    const labelIndices = [0, Math.floor(totalCandles / 2), totalCandles - 1];
-
-    labelIndices.forEach(index => {
-      const x = 60 + (index * spacing);
-      ctx.fillText(`Candle ${index + 1}`, x, height - 5);
+    // Draw index for each candle, aligned with the candle center
+    this.candles.forEach((candle, index) => {
+      const x = candleSpacing + (index * (candleWidth + 4)) + (candleWidth / 2);
+      ctx.fillText(index.toString(), x, height - 5);
     });
   }
 }
