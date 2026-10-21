@@ -1,4 +1,5 @@
-import {Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild} from '@angular/core';
+import {Component, ElementRef, EventEmitter, Input, Output, AfterViewInit, ViewChild, OnChanges, SimpleChanges} from '@angular/core';
+
 
 export interface CandleData {
   open: number;
@@ -8,24 +9,34 @@ export interface CandleData {
   direction: string;
 }
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
 @Component({
   selector: 'app-editable-chart',
   templateUrl: './editable-chart.component.html',
   styleUrls: ['./editable-chart.component.css'],
   standalone: true
 })
-export class EditableChartComponent implements OnChanges {
+export class EditableChartComponent implements AfterViewInit, OnChanges {
   @Input() candles: CandleData[] = [];
 
   @Output() candleModified = new EventEmitter<CandleData>();
 
-  chartInstance: any = null;
-  ctx: CanvasRenderingContext2D | null = null;
+  @ViewChild('chartSvg', { static: false }) svgElement!: ElementRef<SVGSVGElement>;
+  private resizeTimeout: number | null = null;
 
-  @ViewChild('chartCanvas', { static: false }) chartCanvas!: ElementRef<HTMLCanvasElement>;
+  ngAfterViewInit(): void {
+    if (this.svgElement) {
+      this.resizeSvg();
+      this.setupResizeListener();
+      if (this.candles && this.candles.length > 0) {
+        this.renderChart();
+      }
+    }
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['candles']) {
+    if (changes['candles'] && this.svgElement) {
       const currCandles = changes['candles'].currentValue;
       // Always re-render when candles change for editable chart
       if (currCandles && currCandles.length > 0) {
@@ -34,40 +45,19 @@ export class EditableChartComponent implements OnChanges {
     }
   }
 
-  ngOnInit(): void {
-    setTimeout(() => {
-      this.initializeCanvasEvents();
-      if (this.candles && this.candles.length > 0) {
-        this.renderChart();
-      }
-    }, 0);
-  }
+  private resizeSvg(): void {
+    const svg = this.svgElement.nativeElement;
+    if (!svg) return;
 
-  private initializeCanvasEvents(): void {
-    if (!this.chartCanvas) return;
-
-    const canvas = this.chartCanvas.nativeElement;
-    if (!canvas) return;
-
-    this.resizeCanvas(canvas);
-    canvas.addEventListener('contextmenu', (e: MouseEvent) => e.preventDefault());
-    canvas.addEventListener('click', () => {
-      if (this.chartInstance) {
-        this.chartInstance.destroy();
-        this.renderChart();
-      }
-    });
-    this.setupResizeListener(canvas);
-  }
-
-  private resizeCanvas(canvas: HTMLCanvasElement): void {
-    const rect = canvas.getBoundingClientRect();
+    const rect = svg.getBoundingClientRect();
     const displayWidth = Math.round(rect.width);
     const displayHeight = Math.round(rect.height);
 
-    if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
-      canvas.width = displayWidth;
-      canvas.height = displayHeight;
+    if (svg.clientWidth !== displayWidth || svg.clientHeight !== displayHeight) {
+      svg.style.width = `${displayWidth}px`;
+      svg.style.height = `${displayHeight}px`;
+      svg.setAttribute('width', displayWidth.toString());
+      svg.setAttribute('height', displayHeight.toString());
 
       if (this.candles && this.candles.length > 0) {
         setTimeout(() => this.renderChart(), 10);
@@ -75,45 +65,32 @@ export class EditableChartComponent implements OnChanges {
     }
   }
 
-  private setupResizeListener(canvas: HTMLCanvasElement): void {
-    let resizeTimeout: number | null = null;
-
+  private setupResizeListener(): void {
     const handleResize = (): void => {
-      if (resizeTimeout) clearTimeout(resizeTimeout);
-      resizeTimeout = window.setTimeout(() => {
-        this.resizeCanvas(canvas);
-        resizeTimeout = null;
+      if (this.resizeTimeout) clearTimeout(this.resizeTimeout);
+      this.resizeTimeout = window.setTimeout(() => {
+        this.resizeSvg();
+        this.resizeTimeout = null;
       }, 100);
     };
 
     window.addEventListener('resize', handleResize);
-    (canvas as any)._cleanupResize = () => {
-      if (resizeTimeout) clearTimeout(resizeTimeout);
-      window.removeEventListener('resize', handleResize);
-    };
-    (canvas as any)._resizeHandler = handleResize;
-  }
-
-  private ensureCanvasContext(): CanvasRenderingContext2D | null {
-    const canvas = this.chartCanvas?.nativeElement;
-    if (!canvas) return null;
-    if (!this.ctx) this.ctx = canvas.getContext('2d');
-    return this.ctx;
+    this.svgElement.nativeElement.addEventListener('click', () => {
+      this.renderChart();
+    });
   }
 
   renderChart(): void {
     if (!this.candles || !this.candles.length) return;
 
-    const ctx = this.ensureCanvasContext();
-    if (!ctx) return;
+    const svg = this.svgElement.nativeElement!;
+    const width = svg.clientWidth;
+    const height = svg.clientHeight;
 
-    const canvas = this.chartCanvas.nativeElement!;
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-
-    ctx.fillStyle = '#fafafa';
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillRect(0, 0, width, height);
+    // Clear existing SVG content
+    while (svg.firstChild) {
+      svg.removeChild(svg.firstChild);
+    }
 
     let minPrice = Infinity;
     let maxPrice = -Infinity;
@@ -136,74 +113,104 @@ export class EditableChartComponent implements OnChanges {
     const yAxisLabelWidth = 60;
     const chartHeight = height * 0.9;
 
-    this.drawGrid(ctx, width, height, minPrice, maxPrice, chartHeight);
+    // Create SVG group for chart content
+    const chartGroup = document.createElementNS(SVG_NS, 'g');
+    chartGroup.setAttribute('transform', `translate(0, ${(height - chartHeight) / 2})`);
+    svg.appendChild(chartGroup);
 
+    // Draw grid lines and labels
+    this.drawGrid(svg, chartGroup, width, height, minPrice, maxPrice, chartHeight);
+
+    // Draw candles
     this.candles.forEach((candle, index) => {
       const x = candleSpacing + (index * (candleWidth + 4));
-      this.drawCandle(ctx, x, candle, minPrice, maxPrice, chartHeight, width, height, candleWidth, candleSpacing);
+      this.drawCandle(svg, chartGroup, x, candle, minPrice, maxPrice, chartHeight, width, height, candleWidth, candleSpacing);
     });
 
-    this.drawCandleIndexes(ctx, width, height);
+    // Draw candle indexes
+    this.drawCandleIndexes(svg, chartGroup, width, height);
   }
 
-  drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, minPrice: number, maxPrice: number, chartHeight: number = height * 0.9): void {
+  private drawGrid(svg: SVGSVGElement, group: SVGElement, width: number, height: number, minPrice: number, maxPrice: number, chartHeight: number): void {
     const priceRange = maxPrice - minPrice;
     const gridLines = 5;
     const yAxisLabelWidth = 60;
 
     for (let i = 0; i <= gridLines; i++) {
       const price = minPrice + (priceRange * (i / gridLines));
-      const y = (height - chartHeight) / 2 + ((gridLines - i) / gridLines) * chartHeight;
+      const y = ((gridLines - i) / gridLines) * chartHeight;
 
-      ctx.beginPath();
-      ctx.moveTo(yAxisLabelWidth, y);
-      ctx.lineTo(width - 20, y);
-      ctx.strokeStyle = '#e0e0e0';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      // Grid line
+      const line = document.createElementNS(SVG_NS, 'line');
+      line.setAttribute('x1', yAxisLabelWidth.toString());
+      line.setAttribute('y1', y.toString());
+      line.setAttribute('x2', (width - 20).toString());
+      line.setAttribute('y2', y.toString());
+      line.setAttribute('stroke', '#e0e0e0');
+      line.setAttribute('stroke-width', '1');
+      group.appendChild(line);
 
-      ctx.fillStyle = '#666';
-      ctx.font = '12px Arial';
-      ctx.textAlign = 'right';
-      ctx.fillText(price.toFixed(2), yAxisLabelWidth - 5, y + 4);
+      // Y-axis label
+      const text = document.createElementNS(SVG_NS, 'text');
+      text.setAttribute('x', (yAxisLabelWidth - 5).toString());
+      text.setAttribute('y', (y + 4).toString());
+      text.setAttribute('text-anchor', 'end');
+      text.setAttribute('font-size', '12px');
+      text.setAttribute('fill', '#666');
+      text.textContent = price.toFixed(2);
+      group.appendChild(text);
     }
   }
 
-  drawCandle(ctx: CanvasRenderingContext2D, x: number, candle: any, minPrice: number, maxPrice: number, chartHeight: number, width: number, height: number, candleWidth: number, candleSpacing: number): void {
-    const padding = (height - chartHeight) / 2;
-    const yOpen = padding + ((maxPrice - candle.open) / (maxPrice - minPrice)) * chartHeight;
-    const yClose = padding + ((maxPrice - candle.close) / (maxPrice - minPrice)) * chartHeight;
-    const yLow = padding + ((maxPrice - candle.low) / (maxPrice - minPrice)) * chartHeight;
-    const yHigh = padding + ((maxPrice - candle.high) / (maxPrice - minPrice)) * chartHeight;
+  private drawCandle(svg: SVGSVGElement, group: SVGElement, x: number, candle: CandleData, minPrice: number, maxPrice: number, chartHeight: number, width: number, height: number, candleWidth: number, candleSpacing: number): void {
+    const yOpen = ((maxPrice - candle.open) / (maxPrice - minPrice)) * chartHeight;
+    const yClose = ((maxPrice - candle.close) / (maxPrice - minPrice)) * chartHeight;
+    const yLow = ((maxPrice - candle.low) / (maxPrice - minPrice)) * chartHeight;
+    const yHigh = ((maxPrice - candle.high) / (maxPrice - minPrice)) * chartHeight;
 
     const isUp = candle.close >= candle.open;
     const color = isUp ? '#4CAF50' : '#f44336';
 
-    ctx.beginPath();
-    ctx.moveTo(x + candleWidth / 2, yLow);
-    ctx.lineTo(x + candleWidth / 2, yHigh);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 6;
-    ctx.stroke();
+    // Wick (high to low line)
+    const wick = document.createElementNS(SVG_NS, 'line');
+    wick.setAttribute('x1', (x + candleWidth / 2).toString());
+    wick.setAttribute('y1', yLow.toString());
+    wick.setAttribute('x2', (x + candleWidth / 2).toString());
+    wick.setAttribute('y2', yHigh.toString());
+    wick.setAttribute('stroke', color);
+    wick.setAttribute('stroke-width', '6');
+    group.appendChild(wick);
 
+    // Body (rectangle)
     const bodyHeight = Math.max(1, Math.abs(yOpen - yClose));
-    ctx.fillStyle = color;
-
     if (bodyHeight > 0) {
-      ctx.fillRect(x, Math.min(yOpen, yClose), candleWidth, bodyHeight);
+      const body = document.createElementNS(SVG_NS, 'rect');
+      body.setAttribute('x', x.toString());
+      body.setAttribute('y', Math.min(yOpen, yClose).toString());
+      body.setAttribute('width', candleWidth.toString());
+      body.setAttribute('height', bodyHeight.toString());
+      body.setAttribute('fill', color);
+      group.appendChild(body);
     }
 
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(x + candleWidth / 2, yOpen, 3, 0, Math.PI * 2);
-    ctx.fill();
+    // Open circle
+    const openCircle = document.createElementNS(SVG_NS, 'circle');
+    openCircle.setAttribute('cx', (x + candleWidth / 2).toString());
+    openCircle.setAttribute('cy', yOpen.toString());
+    openCircle.setAttribute('r', '3');
+    openCircle.setAttribute('fill', '#fff');
+    group.appendChild(openCircle);
 
-    ctx.beginPath();
-    ctx.arc(x + candleWidth / 2, yClose, 3, 0, Math.PI * 2);
-    ctx.fill();
+    // Close circle
+    const closeCircle = document.createElementNS(SVG_NS, 'circle');
+    closeCircle.setAttribute('cx', (x + candleWidth / 2).toString());
+    closeCircle.setAttribute('cy', yClose.toString());
+    closeCircle.setAttribute('r', '3');
+    closeCircle.setAttribute('fill', '#fff');
+    group.appendChild(closeCircle);
   }
 
-  drawCandleIndexes(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  private drawCandleIndexes(svg: SVGSVGElement, group: SVGElement, width: number, height: number): void {
     const totalCandles = this.candles.length;
     if (totalCandles <= 1) return;
 
@@ -212,14 +219,17 @@ export class EditableChartComponent implements OnChanges {
     const candleWidth = Math.max(2, baseChartWidth / totalCandles - 4);
     const candleSpacing = (baseChartWidth - candleWidth * totalCandles) / (totalCandles + 1);
 
-    ctx.fillStyle = '#999';
-    ctx.font = '20px Arial';
-    ctx.textAlign = 'center';
-
     // Draw index for each candle, aligned with the candle center
     this.candles.forEach((candle, index) => {
       const x = candleSpacing + (index * (candleWidth + 4)) + (candleWidth / 2);
-      ctx.fillText(index.toString(), x, height - 5);
+      const text = document.createElementNS(SVG_NS, 'text');
+      text.setAttribute('x', x.toString());
+      text.setAttribute('y', (height - 5).toString());
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', '20px');
+      text.setAttribute('fill', '#999');
+      text.textContent = index.toString();
+      group.appendChild(text);
     });
   }
 }

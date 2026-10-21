@@ -56,3 +56,20 @@
   opacity: 0.3;
   pointer-events: none;
 }
+
+/* SVG-specific styles */
+svg {
+  display: block;
+  cursor: crosshair;
+  overflow: visible;
+}
+
+/* Ensure SVG content is visible */
+svg g {
+  pointer-events: none;
+}
+
+/* Optional: If you want to show the vertical resize mouse cursor when hovering over edges */
+.chart-container:hover {
+  cursor: ew-resize;
+}
