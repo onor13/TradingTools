@@ -225,7 +225,7 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     wick.setAttribute('x2', (x + candleWidth / 2).toString());
     wick.setAttribute('y2', yHigh.toString());
     wick.setAttribute('stroke', color);
-    wick.setAttribute('stroke-width', '6');
+    wick.setAttribute('stroke-width', '9');
     group.appendChild(wick);
 
     // Body (rectangle)
@@ -286,7 +286,7 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     wick.setAttribute('x2', (x + candleWidth / 2).toString());
     wick.setAttribute('y2', yHigh.toString());
     wick.setAttribute('stroke', color);
-    wick.setAttribute('stroke-width', '6');
+    wick.setAttribute('stroke-width', '9');
     group.appendChild(wick);
 
     // Body (rectangle)
