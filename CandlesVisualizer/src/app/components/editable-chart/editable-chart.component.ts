@@ -39,22 +39,37 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     }
   }
 
-  onCandleDragEnd(candleIndex: number, handleType: 'open' | 'close', startPrice: number, endPrice: number): void {
+  onCandleDragEnd(
+    candleIndex: number,
+    handleType: 'open' | 'close',
+    startPrice: number,
+    endPrice: number,
+    initialCandleData?: { open: number; close: number; low: number; high: number }
+  ): void {
     if (this.dragTimeout) clearTimeout(this.dragTimeout);
 
     this.dragTimeout = window.setTimeout(() => {
       const priceDiff = Math.abs(endPrice - startPrice);
       if (priceDiff >= this.dragThreshold) {
         const candle = this.candles[candleIndex];
+        console.log('candle', candle);
+        console.log('initialCandleData', initialCandleData);
+
+        // Use initial values if provided, otherwise use current values
+        const initialOpen = initialCandleData?.open ?? candle.open;
+        const initialClose = initialCandleData?.close ?? candle.close;
+        const initialLow = initialCandleData?.low ?? candle.low;
+        const initialHigh = initialCandleData?.high ?? candle.high;
+
         if (handleType === 'open') {
           candle.open = endPrice;
+          // Preserve existing high, only update low if new open is lower
+          candle.low = Math.min(endPrice, initialClose, initialLow);
         } else {
           candle.close = endPrice;
+          // Preserve existing low, only update high if new close is higher
+          candle.high = Math.max(initialOpen, endPrice, initialHigh);
         }
-
-        // Recalculate high/low based on new open/close
-        candle.high = Math.max(candle.open, candle.close, candle.low);
-        candle.low = Math.min(candle.open, candle.close, candle.low);
 
         this.candleModified.emit(candle);
         this.renderChart();
@@ -370,6 +385,13 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
 
     // Add new listeners
     const handle = document.querySelector(`.candle-handle[data-candle-index="${candleIndex}"][data-handle-type="${handleType}"]`)!;
+    const candle = this.candles[candleIndex];
+
+    // Store original values before drag
+    const originalOpen = candle.open;
+    const originalClose = candle.close;
+    const originalLow = candle.low;
+    const originalHigh = candle.high;
 
     const rect = this.svgElement.nativeElement.getBoundingClientRect();
 
@@ -384,7 +406,12 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     };
 
     const onEnd = (): void => {
-      this.onCandleDragEnd(candleIndex, handleType, startPrice, parseFloat(handle.getAttribute('data-start-price') || '0'));
+      this.onCandleDragEnd(candleIndex, handleType, startPrice, parseFloat(handle.getAttribute('data-start-price') || '0'), {
+        open: originalOpen,
+        close: originalClose,
+        low: originalLow,
+        high: originalHigh
+      });
 
       // Remove listeners
       document.removeEventListener('mousemove', onMove);
