@@ -10,7 +10,7 @@ public class CandleBuilder {
         return wickLength;
     }
 
-    private final double wickLength = 3;
+    private final double wickLength = 5;
 
     public Candle createUpCandle(Double reference) {
         double open = reference - bodyDelta;
