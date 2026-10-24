@@ -90,6 +90,11 @@ export class AppComponent implements OnInit {
     }
   }
 
+  saveAs(): void {
+    console.log('=== SAVE AS BUTTON CLICKED ===');
+    console.log('Saving chart data...');
+  }
+
   onCandleModified(candle: CandleData): void {
     console.log('onCandleModified called with:', candle);
 

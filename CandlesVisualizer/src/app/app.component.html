@@ -32,6 +32,16 @@
       <div style="margin-top: 20px; width: 100%; max-width: 100%;">
         <h3 style="text-align: center; color: #666;">Editable Chart - Click and drag on candle wicks to modify high/low values</h3>
         <app-editable-chart id="editableChart" [candles]="transferredCandles" (candleModified)="onCandleModified($event)"></app-editable-chart>
+
+        <div style="text-align: center; margin-top: 15px;">
+          <button id="saveAs" class="transfer-btn" (click)="saveAs()">
+            Save As
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-left: 8px;">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 2L16 3h-2l-1-1H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7 3v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
       </div>
     }
   </main>
