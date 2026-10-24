@@ -103,29 +103,76 @@ export class AppComponent implements OnInit {
     }
   }
 
-  saveAs(): void {
+  showFileNameDialog(): void {
     console.log('=== SAVE AS BUTTON CLICKED ===');
-    console.log('Saving chart data...');
+    console.log('Opening file name input dialog...');
 
-    // Validate file name
-    if (!this.saveFileName.trim()) {
-      alert('Please enter a file name');
-      return;
+    // Show the input dialog synchronously for Safari's user-activation policy
+    const dialogElement = document.getElementById('fileNameDialog');
+    if (dialogElement) {
+      dialogElement.style.display = 'flex';
+
+      // Focus the input field and select all text for easy replacement
+      const inputElement = document.getElementById('fileNameInput') as HTMLInputElement;
+      if (inputElement) {
+        inputElement.value = this.saveFileName || '';
+        inputElement.focus();
+        inputElement.select();
+
+        // Trigger the save when user presses Enter or clicks Confirm
+        inputElement.addEventListener('keydown', (e: KeyboardEvent) => {
+          if (e.key === 'Enter') {
+            this.confirmSave();
+          }
+        });
+      }
     }
+  }
 
-    // Create a list of CandleJson objects based on the editableChart data
-    const candleJsonList: CandleJson[] = this.transferredCandles.map(candle => ({
-      open: candle.open,
-      close: candle.close,
-      low: candle.low,
-      high: candle.high
-    }));
+  confirmSave(): void {
+    const dialogElement = document.getElementById('fileNameDialog');
+    const inputElement = document.getElementById('fileNameInput') as HTMLInputElement;
 
-    console.log('Created CandleJson list with', candleJsonList.length, 'items');
-    console.log('CandleJson list:', candleJsonList);
+    if (dialogElement && inputElement) {
+      const fileName = inputElement.value.trim();
 
-    // Try to use native file save dialog (File System Access API)
-    this.saveToJsonFile(candleJsonList, this.saveFileName);
+      // Hide the dialog
+      dialogElement.style.display = 'none';
+
+      // Validate file name
+      if (!fileName) {
+        console.log('No file name provided, hiding dialog');
+        dialogElement.style.display = 'flex';
+        inputElement.focus();
+        return;
+      }
+
+      // Create a list of CandleJson objects based on the editableChart data
+      const candleJsonList: CandleJson[] = this.transferredCandles.map(candle => ({
+        open: candle.open,
+        close: candle.close,
+        low: candle.low,
+        high: candle.high
+      }));
+
+      console.log('Created CandleJson list with', candleJsonList.length, 'items');
+      console.log('Saving file:', fileName);
+
+      // Synchronously save the file using modern-file-saver
+      this.saveToJsonFile(candleJsonList, fileName);
+    }
+  }
+
+  hideFileNameDialog(): void {
+    const dialogElement = document.getElementById('fileNameDialog');
+    if (dialogElement) {
+      dialogElement.style.display = 'none';
+    }
+  }
+
+  saveAs(): void {
+    // Show the file name input dialog synchronously
+    this.showFileNameDialog();
   }
 
   private async saveToJsonFile(data: CandleJson[], fileName: string): Promise<void> {

@@ -46,6 +46,25 @@
     }
   </main>
 
+  <!-- File Name Input Dialog Modal -->
+  <div id="fileNameDialog" class="file-name-dialog" style="display: none;">
+    <div class="dialog-content">
+      <h3>Save As</h3>
+      <p>Enter file name:</p>
+      <input
+        type="text"
+        id="fileNameInput"
+        class="file-name-input"
+        placeholder="e.g., candles.json"
+        autocomplete="off"
+      />
+      <div class="dialog-actions">
+        <button class="btn-confirm" (click)="confirmSave()">Confirm Download</button>
+        <button class="btn-cancel" (click)="hideFileNameDialog()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <footer class="stats" style="min-width: 320px; max-width: 100%;">
     @if (candles.length > 0) {
       <div class="stat-item">
