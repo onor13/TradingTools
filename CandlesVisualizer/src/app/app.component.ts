@@ -1,9 +1,18 @@
 import { Component, OnInit, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { CandlesDataService, CandleData } from './services';
 import { DataChartComponent } from './components/data-chart';
 import { EditableChartComponent } from './components/editable-chart';
+
+// TypeScript interface matching the Java CandleJson class
+export interface CandleJson {
+  open: number;
+  close: number;
+  low: number;
+  high: number;
+}
 
 export interface CandlesResponse {
   candles: CandleData[];
@@ -14,7 +23,7 @@ export interface CandlesResponse {
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
   standalone: true,
-  imports: [CommonModule, HttpClientModule, DataChartComponent, EditableChartComponent]
+  imports: [CommonModule, FormsModule, HttpClientModule, DataChartComponent, EditableChartComponent]
 })
 export class AppComponent implements OnInit {
   title = 'Candles Visualizer';
@@ -26,6 +35,10 @@ export class AppComponent implements OnInit {
 
   // Shared data for the second chart - direct property binding
   transferredCandles: CandleData[] = [];
+
+  // Save As settings
+  saveFileName = 'candles.json';
+  saveMessage = 'Click "Save As" to choose where to save the file.';
 
   constructor(private candlesService: CandlesDataService) {}
 
@@ -93,6 +106,55 @@ export class AppComponent implements OnInit {
   saveAs(): void {
     console.log('=== SAVE AS BUTTON CLICKED ===');
     console.log('Saving chart data...');
+
+    // Validate file name
+    if (!this.saveFileName.trim()) {
+      alert('Please enter a file name');
+      return;
+    }
+
+    // Create a list of CandleJson objects based on the editableChart data
+    const candleJsonList: CandleJson[] = this.transferredCandles.map(candle => ({
+      open: candle.open,
+      close: candle.close,
+      low: candle.low,
+      high: candle.high
+    }));
+
+    console.log('Created CandleJson list with', candleJsonList.length, 'items');
+    console.log('CandleJson list:', candleJsonList);
+
+    // Try to use native file save dialog (File System Access API)
+    this.saveToJsonFile(candleJsonList, this.saveFileName);
+  }
+
+  private async saveToJsonFile(data: CandleJson[], fileName: string): Promise<void> {
+    // Convert CandleJson objects to plain objects for JSON serialization
+    const jsonData = JSON.stringify(data, null, 2);
+
+    // Create a Blob with the JSON data
+    const blob = new Blob([jsonData], { type: 'application/json' });
+
+    this.downloadToJsonFile(blob, fileName);
+
+  }
+
+  private downloadToJsonFile(blob: Blob, fileName: string): void {
+    // Create a temporary download link
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+
+    // Append to body, click, and remove
+    document.body.appendChild(link);
+    link.click();
+
+    // Cleanup
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    console.log('File downloaded:', fileName);
   }
 
   onCandleModified(candle: CandleData): void {
