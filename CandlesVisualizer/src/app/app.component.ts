@@ -158,8 +158,20 @@ export class AppComponent implements OnInit {
       console.log('Created CandleJson list with', candleJsonList.length, 'items');
       console.log('Saving file:', fileName);
 
-      // Synchronously save the file using modern-file-saver
+      // Save the JSON file
       this.saveToJsonFile(candleJsonList, fileName);
+
+      // Also capture and save a screenshot of the chart
+      this.captureChartScreenshot().then((screenshotBlob) => {
+        if (screenshotBlob) {
+          // Generate PNG filename with .png extension
+          const pngFileName = fileName.replace('.json', '.png');
+          console.log('Captured chart screenshot, saving as:', pngFileName);
+          this.downloadImageFile(screenshotBlob, pngFileName);
+        }
+      }).catch((error) => {
+        console.error('Error capturing chart screenshot:', error);
+      });
     }
   }
 
@@ -184,6 +196,100 @@ export class AppComponent implements OnInit {
 
     this.downloadToJsonFile(blob, fileName);
 
+  }
+
+  private async captureChartScreenshot(): Promise<Blob | null> {
+    // Get reference to the editable chart SVG element
+    const chartElement = document.getElementById('editable-chart') as HTMLElement;
+
+    if (!chartElement) {
+      console.warn('Editable chart element not found');
+      return null;
+    }
+
+    const svgElement = chartElement.querySelector('svg') as SVGSVGElement;
+    if (!svgElement) {
+      console.warn('SVG element not found within editable chart');
+      return null;
+    }
+
+    // Get the SVG dimensions
+    const width = svgElement.clientWidth || 1920;
+    const height = svgElement.clientHeight || 600;
+
+    // Create a canvas to convert SVG to image
+    const canvas = document.createElement('canvas');
+    canvas.width = width * 2; // 2x resolution for better quality
+    canvas.height = height * 2;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.warn('Could not get canvas context');
+      return null;
+    }
+
+    // Serialize SVG to string
+    const svgData = new XMLSerializer().serializeToString(svgElement);
+
+    // Create SVG blob URL
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    // Create image element and load SVG
+    const img = new Image();
+    return new Promise<Blob | null>((resolve) => {
+      img.onload = () => {
+        // Clear canvas
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw SVG at 2x scale
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Convert to PNG
+        const pngUrl = canvas.toDataURL('image/png', 1.0);
+        URL.revokeObjectURL(url);
+
+        // Convert PNG data URL to blob
+        const base64Data = pngUrl.split(',')[1];
+        const byteCharacters = atob(base64Data);
+        const byteArrays = [];
+
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteArrays.push(byteCharacters.charCodeAt(i));
+        }
+
+        const byteArray = new Uint8Array(byteArrays);
+        const pngBlob = new Blob([byteArray], { type: 'image/png' });
+        resolve(pngBlob);
+      };
+
+      img.onerror = () => {
+        console.error('Failed to load SVG image');
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+
+      img.src = url;
+    });
+  }
+
+  private downloadImageFile(blob: Blob, fileName: string): void {
+    // Create a temporary download link
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+
+    // Append to body, click, and remove
+    document.body.appendChild(link);
+    link.click();
+
+    // Cleanup
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    console.log('Screenshot downloaded:', fileName);
   }
 
   private downloadToJsonFile(blob: Blob, fileName: string): void {
