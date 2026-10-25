@@ -1,4 +1,5 @@
 import {Component, ElementRef, Input, OnChanges, SimpleChanges, ViewChild} from '@angular/core';
+import {calculateCandlePriceRange, calculateCandleLayout} from '../../utils/candle-calculations';
 
 export interface CandleData {
   open: number;
@@ -138,23 +139,22 @@ export class DataChartComponent implements OnChanges {
     ctx.clearRect(0, 0, width, height);
     ctx.fillRect(0, 0, width, height);
 
-    let minPrice = Infinity;
-    let maxPrice = -Infinity;
+    const priceRangeResult = calculateCandlePriceRange(this.candles);
+    if (!priceRangeResult) {
+      console.log('renderChart: No valid price range calculated');
+      return;
+    }
 
-    this.candles.forEach(candle => {
-      if (candle.low < minPrice) minPrice = candle.low;
-      if (candle.high > maxPrice) maxPrice = candle.high;
-    });
-
-    const priceRange = maxPrice - minPrice;
-    const padding = priceRange * 0.1;
-    minPrice -= padding;
-    maxPrice += padding;
+    const { minPrice, maxPrice, priceRange } = priceRangeResult;
 
     const totalCandles = this.candles.length;
-    const baseChartWidth = width - 40;
-    const candleWidth = Math.max(2, baseChartWidth / totalCandles - 4);
-    const candleSpacing = (baseChartWidth - candleWidth * totalCandles) / (totalCandles + 1);
+    const layout = calculateCandleLayout(width, totalCandles);
+    if (!layout) {
+      console.log('renderChart: No valid candle layout calculated');
+      return;
+    }
+
+    const { baseChartWidth, candleWidth, candleSpacing } = layout;
 
     const chartHeight = height * this.chartHeightRatio;
 

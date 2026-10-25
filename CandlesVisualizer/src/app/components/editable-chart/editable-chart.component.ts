@@ -1,4 +1,5 @@
 import {Component, ElementRef, EventEmitter, Input, Output, AfterViewInit, ViewChild, OnChanges, SimpleChanges} from '@angular/core';
+import {calculateCandlePriceRange, calculateCandleLayout} from '../../utils/candle-calculations';
 
 export interface CandleData {
   open: number;
@@ -125,13 +126,6 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     });
   }
 
-  private calculateCandleLayout(width: number, totalCandles: number): { baseChartWidth: number; candleWidth: number; candleSpacing: number } {
-    const baseChartWidth = width - 40;
-    const candleWidth = Math.max(2, baseChartWidth / totalCandles - 4);
-    const candleSpacing = (baseChartWidth - candleWidth * totalCandles) / (totalCandles + 1);
-    return { baseChartWidth, candleWidth, candleSpacing };
-  }
-
   renderChart(): void {
     if (!this.candles || !this.candles.length) return;
 
@@ -144,21 +138,20 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
       svg.removeChild(svg.firstChild);
     }
 
-    let minPrice = Infinity;
-    let maxPrice = -Infinity;
+    const priceRangeResult = calculateCandlePriceRange(this.candles);
+    if (!priceRangeResult) {
+      return;
+    }
 
-    this.candles.forEach(candle => {
-      if (candle.low < minPrice) minPrice = candle.low;
-      if (candle.high > maxPrice) maxPrice = candle.high;
-    });
-
-    const priceRange = maxPrice - minPrice;
-    const padding = priceRange * 0.1;
-    minPrice -= padding;
-    maxPrice += padding;
+    const { minPrice, maxPrice, priceRange } = priceRangeResult;
 
     const totalCandles = this.candles.length;
-    const { baseChartWidth, candleWidth, candleSpacing } = this.calculateCandleLayout(width, totalCandles);
+    const layout = calculateCandleLayout(width, totalCandles);
+    if (!layout) {
+      return;
+    }
+
+    const { baseChartWidth, candleWidth, candleSpacing } = layout;
 
     const yAxisLabelWidth = 60;
     const chartHeight = height * 0.9;
@@ -397,7 +390,12 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     if (totalCandles <= 1) return;
 
     // Use the same calculations as renderChart to align labels with candles
-    const { baseChartWidth, candleWidth, candleSpacing } = this.calculateCandleLayout(width, totalCandles);
+    const layout = calculateCandleLayout(width, totalCandles);
+    if (!layout) {
+      return;
+    }
+
+    const { baseChartWidth, candleWidth, candleSpacing } = layout;
 
     // Draw index for each candle, aligned with the candle center
     this.candles.forEach((candle, index) => {
