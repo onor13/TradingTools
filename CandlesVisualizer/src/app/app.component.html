@@ -28,13 +28,16 @@
         </button>
       </div>
 
+      <!-- Hidden file input for loading JSON files -->
+      <input type="file" id="fileInput" accept=".json" style="display: none;" (change)="onFileSelected($event)" />
+
       <!-- Second chart that will display transferred data -->
       <div style="margin-top: 20px; width: 100%; max-width: 100%;">
         <h3 style="text-align: center; color: #666;">Editable Chart - Click and drag on candle wicks to modify high/low values</h3>
         <app-editable-chart id="editableChart" [candles]="transferredCandles" (candleModified)="onCandleModified($event)"></app-editable-chart>
 
         <div style="text-align: center; margin-top: 15px;">
-        <button id="load" class="transfer-btn" (click)="loadData()" style="margin-right: 50px;">
+        <button id="load" class="transfer-btn" (click)="triggerFileInput()" style="margin-right: 50px;">
           Load
         </button>
         <button id="saveAs" class="transfer-btn" (click)="saveAs()">

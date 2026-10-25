@@ -80,6 +80,98 @@ export class AppComponent implements OnInit {
 
   loadData(): void {
     console.log('Load button clicked');
+    // Trigger the hidden file input to open file picker
+    const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  }
+
+  triggerFileInput(): void {
+    console.log('Triggering file input');
+    const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  }
+
+  onFileSelected(event: Event): void {
+    const fileInput = event.target as HTMLInputElement;
+    const file = fileInput.files?.[0];
+
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
+
+    console.log('File selected:', file.name);
+
+    // Validate file type
+    if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
+      this.error = 'Please select a JSON file';
+      this.isLoading = false;
+      return;
+    }
+
+    // Read the file content
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const jsonContent = e.target?.result as string;
+        const parsedData = JSON.parse(jsonContent);
+
+        // Validate and transform the data
+        if (parsedData.candles && Array.isArray(parsedData.candles)) {
+          this.candles = parsedData.candles.map((candle: any) => ({
+            open: candle.open,
+            close: candle.close,
+            low: candle.low,
+            high: candle.high
+          }));
+
+          console.log('Loaded', this.candles.length, 'candles from file');
+
+          if (this.candles.length > 0) {
+            this.calculatePriceRange();
+          }
+
+          this.isLoading = false;
+          this.error = null;
+        } else if (Array.isArray(parsedData)) {
+          // Handle case where the JSON is directly an array of candles
+          this.candles = parsedData.map((candle: any) => ({
+            open: candle.open,
+            close: candle.close,
+            low: candle.low,
+            high: candle.high
+          }));
+
+          console.log('Loaded', this.candles.length, 'candles from file (array format)');
+
+          if (this.candles.length > 0) {
+            this.calculatePriceRange();
+          }
+
+          this.isLoading = false;
+          this.error = null;
+        } else {
+          this.error = 'Invalid JSON format. Expected an object with "candles" property or an array of candles.';
+          this.isLoading = false;
+        }
+      } catch (parseError) {
+        console.error('Error parsing JSON file:', parseError);
+        this.error = 'Failed to parse JSON file: ' + (parseError as Error).message;
+        this.isLoading = false;
+      }
+    };
+
+    reader.onerror = () => {
+      console.error('Error reading file');
+      this.error = 'Failed to read file';
+      this.isLoading = false;
+    };
+
+    reader.readAsText(file);
   }
 
   transferData(): void {

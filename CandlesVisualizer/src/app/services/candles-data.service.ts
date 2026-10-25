@@ -8,7 +8,7 @@ export interface CandleData {
   close: number;
   low: number;
   high: number;
-  direction: string;
+  direction?: string;
 }
 
 export interface CandlesResponse {
