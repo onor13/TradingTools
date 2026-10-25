@@ -42,6 +42,25 @@ export class AppComponent implements OnInit {
 
   constructor(private candlesService: CandlesDataService) {}
 
+  /**
+   * Transforms CandleData into CandleJson format for Editable Chart
+   */
+  private transformCandleToCandleJson(candle: CandleData): CandleJson {
+    return {
+      open: candle.open,
+      close: candle.close,
+      low: candle.low,
+      high: candle.high
+    };
+  }
+
+  /**
+   * Transforms an array of CandleData into CandleJson[] for Editable Chart
+   */
+  private transformCandlesToCandleJsonArray(candles: CandleData[]): CandleJson[] {
+    return candles.map(candle => this.transformCandleToCandleJson(candle));
+  }
+
   ngOnInit(): void {
     this.loadCandles();
   }
@@ -80,15 +99,10 @@ export class AppComponent implements OnInit {
 
   loadData(): void {
     console.log('Load button clicked');
-    // Trigger the hidden file input to open file picker
-    const fileInput = document.getElementById('fileInput') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.click();
-    }
+    this.triggerFileInput();
   }
 
   triggerFileInput(): void {
-    console.log('Triggering file input');
     const fileInput = document.getElementById('fileInput') as HTMLInputElement;
     if (fileInput) {
       fileInput.click();
@@ -126,13 +140,7 @@ export class AppComponent implements OnInit {
         // Validate and transform the data
         if (parsedData.candles && Array.isArray(parsedData.candles)) {
           // Only update transferredCandles for Editable Chart - do NOT modify candles (Data Chart)
-          const newCandles = parsedData.candles.map((candle: any) => ({
-            open: candle.open,
-            close: candle.close,
-            low: candle.low,
-            high: candle.high,
-            direction: candle.direction
-          }));
+          const newCandles = this.transformCandlesToCandleJsonArray(parsedData.candles as CandleData[]);
           this.transferredCandles = newCandles;
 
           console.log('Loaded', this.transferredCandles.length, 'candles from file into Editable Chart');
@@ -146,13 +154,7 @@ export class AppComponent implements OnInit {
         } else if (Array.isArray(parsedData)) {
           // Handle case where the JSON is directly an array of candles
           // Only update transferredCandles for Editable Chart - do NOT modify candles (Data Chart)
-          const newCandles = parsedData.map((candle: any) => ({
-            open: candle.open,
-            close: candle.close,
-            low: candle.low,
-            high: candle.high,
-            direction: candle.direction
-          }));
+          const newCandles = this.transformCandlesToCandleJsonArray(parsedData as CandleData[]);
           this.transferredCandles = newCandles;
 
           console.log('Loaded', this.transferredCandles.length, 'candles from file (array format) into Editable Chart');
@@ -190,13 +192,7 @@ export class AppComponent implements OnInit {
       console.log('Transferring', this.candles.length, 'candles to Editable Chart');
 
       // Only update transferredCandles for Editable Chart - do NOT modify candles (Data Chart)
-      const newCandles = this.candles.map(candle => ({
-        open: candle.open,
-        close: candle.close,
-        low: candle.low,
-        high: candle.high,
-        direction: candle.direction
-      }));
+      const newCandles = this.transformCandlesToCandleJsonArray(this.candles);
 
       console.log('Created new candles array with', newCandles.length, 'items');
 
@@ -254,12 +250,7 @@ export class AppComponent implements OnInit {
       }
 
       // Create a list of CandleJson objects based on the editableChart data
-      const candleJsonList: CandleJson[] = this.transferredCandles.map(candle => ({
-        open: candle.open,
-        close: candle.close,
-        low: candle.low,
-        high: candle.high
-      }));
+      const candleJsonList = this.transformCandlesToCandleJsonArray(this.transferredCandles);
 
       console.log('Created CandleJson list with', candleJsonList.length, 'items');
       console.log('Saving file:', fileName);
@@ -273,7 +264,7 @@ export class AppComponent implements OnInit {
           // Generate PNG filename with .png extension
           const pngFileName = fileName.replace('.json', '.png');
           console.log('Captured chart screenshot, saving as:', pngFileName);
-          this.downloadImageFile(screenshotBlob, pngFileName);
+          this.downloadFile(screenshotBlob, pngFileName);
         }
       }).catch((error) => {
         console.error('Error capturing chart screenshot:', error);
@@ -300,7 +291,7 @@ export class AppComponent implements OnInit {
     // Create a Blob with the JSON data
     const blob = new Blob([jsonData], { type: 'application/json' });
 
-    this.downloadToJsonFile(blob, fileName);
+    this.downloadFile(blob, fileName);
 
   }
 
@@ -380,25 +371,7 @@ export class AppComponent implements OnInit {
     });
   }
 
-  private downloadImageFile(blob: Blob, fileName: string): void {
-    // Create a temporary download link
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-
-    // Append to body, click, and remove
-    document.body.appendChild(link);
-    link.click();
-
-    // Cleanup
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    console.log('Screenshot downloaded:', fileName);
-  }
-
-  private downloadToJsonFile(blob: Blob, fileName: string): void {
+  private downloadFile(blob: Blob, fileName: string): void {
     // Create a temporary download link
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
