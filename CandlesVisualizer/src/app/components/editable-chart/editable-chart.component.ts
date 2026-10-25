@@ -125,6 +125,13 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     });
   }
 
+  private calculateCandleLayout(width: number, totalCandles: number): { baseChartWidth: number; candleWidth: number; candleSpacing: number } {
+    const baseChartWidth = width - 40;
+    const candleWidth = Math.max(2, baseChartWidth / totalCandles - 4);
+    const candleSpacing = (baseChartWidth - candleWidth * totalCandles) / (totalCandles + 1);
+    return { baseChartWidth, candleWidth, candleSpacing };
+  }
+
   renderChart(): void {
     if (!this.candles || !this.candles.length) return;
 
@@ -151,9 +158,7 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     maxPrice += padding;
 
     const totalCandles = this.candles.length;
-    const baseChartWidth = width - 40;
-    const candleWidth = Math.max(2, baseChartWidth / totalCandles - 4);
-    const candleSpacing = (baseChartWidth - candleWidth * totalCandles) / (totalCandles + 1);
+    const { baseChartWidth, candleWidth, candleSpacing } = this.calculateCandleLayout(width, totalCandles);
 
     const yAxisLabelWidth = 60;
     const chartHeight = height * 0.9;
@@ -187,8 +192,8 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     const yAxisLabelWidth = 60;
 
     for (let i = 0; i <= gridLines; i++) {
-      const price = minPrice + (priceRange * (i / gridLines));
-      const y = ((gridLines - i) / gridLines) * chartHeight;
+      const price = this.getPriceAtPosition(i, gridLines, minPrice, maxPrice);
+      const y = this.getYPosition(i, gridLines, chartHeight);
 
       // Grid line
       const line = document.createElementNS(SVG_NS, 'line');
@@ -212,6 +217,14 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     }
   }
 
+  private getPriceAtPosition(positionIndex: number, totalPositions: number, minPrice: number, maxPrice: number): number {
+    return minPrice + ((maxPrice - minPrice) * (positionIndex / totalPositions));
+  }
+
+  private getYPosition(positionIndex: number, totalPositions: number, chartHeight: number): number {
+    return ((totalPositions - positionIndex) / totalPositions) * chartHeight;
+  }
+
   private drawCandle(
     svg: SVGSVGElement,
     group: SVGElement,
@@ -227,10 +240,10 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     index?: number,
     withHandles?: boolean
   ): void {
-    const yOpen = ((maxPrice - candle.open) / (maxPrice - minPrice)) * chartHeight;
-    const yClose = ((maxPrice - candle.close) / (maxPrice - minPrice)) * chartHeight;
-    const yLow = ((maxPrice - candle.low) / (maxPrice - minPrice)) * chartHeight;
-    const yHigh = ((maxPrice - candle.high) / (maxPrice - minPrice)) * chartHeight;
+    const yOpen = this.getYPositionForPrice(candle.open, minPrice, maxPrice, chartHeight);
+    const yClose = this.getYPositionForPrice(candle.close, minPrice, maxPrice, chartHeight);
+    const yLow = this.getYPositionForPrice(candle.low, minPrice, maxPrice, chartHeight);
+    const yHigh = this.getYPositionForPrice(candle.high, minPrice, maxPrice, chartHeight);
 
     const isUp = candle.close >= candle.open;
     const color = isUp ? '#4CAF50' : '#f44336';
@@ -282,6 +295,10 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
       this.addDragHandle(svg, group, x, yOpen, candle, 'open', index, candleWidth);
       this.addDragHandle(svg, group, x, yClose, candle, 'close', index, candleWidth);
     }
+  }
+
+  private getYPositionForPrice(price: number, minPrice: number, maxPrice: number, chartHeight: number): number {
+    return ((maxPrice - price) / (maxPrice - minPrice)) * chartHeight;
   }
 
   private addDragHandle(
@@ -346,7 +363,7 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
       const mouseY = e.clientY - rect.top;
 
       // Calculate price based on mouse Y position
-      const price = this.chartMaxPrice - ((mouseY / this.chartHeightVal) * (this.chartMaxPrice - this.chartMinPrice));
+      const price = this.getPriceFromMousePosition(mouseY, rect.height, this.chartMaxPrice, this.chartMinPrice, this.chartHeightVal);
 
       // Update the handle's start price with 2 decimal places
       handle.setAttribute('data-start-price', this.formatNumber(price));
@@ -371,14 +388,16 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     document.addEventListener('mouseleave', onEnd);
   }
 
+  private getPriceFromMousePosition(mouseY: number, containerHeight: number, maxPrice: number, minPrice: number, chartHeight: number): number {
+    return maxPrice - ((mouseY / chartHeight) * (maxPrice - minPrice));
+  }
+
   private drawCandleIndexes(svg: SVGSVGElement, group: SVGElement, width: number, height: number): void {
     const totalCandles = this.candles.length;
     if (totalCandles <= 1) return;
 
     // Use the same calculations as renderChart to align labels with candles
-    const baseChartWidth = width - 40;
-    const candleWidth = Math.max(2, baseChartWidth / totalCandles - 4);
-    const candleSpacing = (baseChartWidth - candleWidth * totalCandles) / (totalCandles + 1);
+    const { baseChartWidth, candleWidth, candleSpacing } = this.calculateCandleLayout(width, totalCandles);
 
     // Draw index for each candle, aligned with the candle center
     this.candles.forEach((candle, index) => {
