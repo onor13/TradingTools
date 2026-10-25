@@ -17,6 +17,9 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
   standalone: true
 })
 export class EditableChartComponent implements AfterViewInit, OnChanges {
+  formatNumber(value: number): string {
+    return value.toFixed(2);
+  }
   @Input() candles: CandleData[] = [];
 
   @Output() candleModified = new EventEmitter<CandleData>();
@@ -204,7 +207,7 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
       text.setAttribute('text-anchor', 'end');
       text.setAttribute('font-size', '12px');
       text.setAttribute('fill', '#666');
-      text.textContent = price.toFixed(2);
+      text.textContent = this.formatNumber(price);
       group.appendChild(text);
     }
   }
@@ -321,7 +324,7 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     openHandle.setAttribute('class', 'candle-handle');
     openHandle.setAttribute('data-candle-index', index.toString());
     openHandle.setAttribute('data-handle-type', 'open');
-    openHandle.setAttribute('data-start-price', candle.open.toString());
+    openHandle.setAttribute('data-start-price', this.formatNumber(candle.open));
 
     // Add click event for drag start
     const openClickEvent = document.createEvent('HTMLEvents');
@@ -357,7 +360,7 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     closeHandle.setAttribute('class', 'candle-handle');
     closeHandle.setAttribute('data-candle-index', index.toString());
     closeHandle.setAttribute('data-handle-type', 'close');
-    closeHandle.setAttribute('data-start-price', candle.close.toString());
+    closeHandle.setAttribute('data-start-price', this.formatNumber(candle.close));
 
     // Add click event for drag start
     const closeClickEvent = document.createEvent('HTMLEvents');
@@ -401,8 +404,8 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
       // Calculate price based on mouse Y position
       const price = this.chartMaxPrice - ((mouseY / this.chartHeightVal) * (this.chartMaxPrice - this.chartMinPrice));
 
-      // Update the handle's start price
-      handle.setAttribute('data-start-price', price.toString());
+      // Update the handle's start price with 2 decimal places
+      handle.setAttribute('data-start-price', this.formatNumber(price));
     };
 
     const onEnd = (): void => {
