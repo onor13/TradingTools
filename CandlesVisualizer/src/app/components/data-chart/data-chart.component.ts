@@ -17,6 +17,10 @@ export interface CandleData {
 export class DataChartComponent implements OnChanges {
   @Input() candles: CandleData[] = [];
 
+  // Constants
+  readonly yAxisLabelWidth = 60;
+  readonly chartHeightRatio = 0.9;
+
   chartInstance: any = null;
   ctx: CanvasRenderingContext2D | null = null;
 
@@ -108,6 +112,10 @@ export class DataChartComponent implements OnChanges {
     return this.ctx;
   }
 
+  private getPadding(chartHeight: number, totalHeight: number): number {
+    return (totalHeight - chartHeight) / 2;
+  }
+
   renderChart(): void {
     if (!this.candles || !this.candles.length) {
       console.log('renderChart: No candles to render');
@@ -148,8 +156,7 @@ export class DataChartComponent implements OnChanges {
     const candleWidth = Math.max(2, baseChartWidth / totalCandles - 4);
     const candleSpacing = (baseChartWidth - candleWidth * totalCandles) / (totalCandles + 1);
 
-    const yAxisLabelWidth = 60;
-    const chartHeight = height * 0.9;
+    const chartHeight = height * this.chartHeightRatio;
 
     this.drawGrid(ctx, width, height, minPrice, maxPrice, chartHeight);
 
@@ -159,17 +166,17 @@ export class DataChartComponent implements OnChanges {
     });
   }
 
-  drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, minPrice: number, maxPrice: number, chartHeight: number = height * 0.9): void {
+  drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, minPrice: number, maxPrice: number, chartHeight?: number): void {
     const priceRange = maxPrice - minPrice;
     const gridLines = 5;
-    const yAxisLabelWidth = 60;
+    const effectiveChartHeight = chartHeight ?? height * this.chartHeightRatio;
 
     for (let i = 0; i <= gridLines; i++) {
       const price = minPrice + (priceRange * (i / gridLines));
-      const y = (height - chartHeight) / 2 + ((gridLines - i) / gridLines) * chartHeight;
+      const y = (height - effectiveChartHeight) / 2 + ((gridLines - i) / gridLines) * effectiveChartHeight;
 
       ctx.beginPath();
-      ctx.moveTo(yAxisLabelWidth, y);
+      ctx.moveTo(this.yAxisLabelWidth, y);
       ctx.lineTo(width - 20, y);
       ctx.strokeStyle = '#e0e0e0';
       ctx.lineWidth = 1;
@@ -178,12 +185,12 @@ export class DataChartComponent implements OnChanges {
       ctx.fillStyle = '#666';
       ctx.font = '12px Arial';
       ctx.textAlign = 'right';
-      ctx.fillText(price.toFixed(2), yAxisLabelWidth - 5, y + 4);
+      ctx.fillText(price.toFixed(2), this.yAxisLabelWidth - 5, y + 4);
     }
   }
 
   drawCandle(ctx: CanvasRenderingContext2D, x: number, candle: any, minPrice: number, maxPrice: number, chartHeight: number, width: number, height: number, candleWidth: number, candleSpacing: number): void {
-    const padding = (height - chartHeight) / 2;
+    const padding = this.getPadding(chartHeight, height);
     const yOpen = padding + ((maxPrice - candle.open) / (maxPrice - minPrice)) * chartHeight;
     const yClose = padding + ((maxPrice - candle.close) / (maxPrice - minPrice)) * chartHeight;
     const yLow = padding + ((maxPrice - candle.low) / (maxPrice - minPrice)) * chartHeight;

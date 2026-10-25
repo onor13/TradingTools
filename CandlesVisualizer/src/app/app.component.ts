@@ -26,7 +26,7 @@ export interface CandlesResponse {
   imports: [CommonModule, FormsModule, HttpClientModule, DataChartComponent, EditableChartComponent]
 })
 export class AppComponent implements OnInit {
-  title = 'Candles Visualizer';
+  title = 'Candlestick patterns creation';
   candles: CandleData[] = [];
   isLoading = true;
   error: string | null = null;
