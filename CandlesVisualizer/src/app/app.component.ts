@@ -120,18 +120,24 @@ export class AppComponent implements OnInit {
         const jsonContent = e.target?.result as string;
         const parsedData = JSON.parse(jsonContent);
 
+        // Clear transferredCandles before loading new data to ensure Editable Chart is updated
+        this.transferredCandles = [];
+
         // Validate and transform the data
         if (parsedData.candles && Array.isArray(parsedData.candles)) {
-          this.candles = parsedData.candles.map((candle: any) => ({
+          // Only update transferredCandles for Editable Chart - do NOT modify candles (Data Chart)
+          const newCandles = parsedData.candles.map((candle: any) => ({
             open: candle.open,
             close: candle.close,
             low: candle.low,
-            high: candle.high
+            high: candle.high,
+            direction: candle.direction
           }));
+          this.transferredCandles = newCandles;
 
-          console.log('Loaded', this.candles.length, 'candles from file');
+          console.log('Loaded', this.transferredCandles.length, 'candles from file into Editable Chart');
 
-          if (this.candles.length > 0) {
+          if (this.transferredCandles.length > 0) {
             this.calculatePriceRange();
           }
 
@@ -139,16 +145,19 @@ export class AppComponent implements OnInit {
           this.error = null;
         } else if (Array.isArray(parsedData)) {
           // Handle case where the JSON is directly an array of candles
-          this.candles = parsedData.map((candle: any) => ({
+          // Only update transferredCandles for Editable Chart - do NOT modify candles (Data Chart)
+          const newCandles = parsedData.map((candle: any) => ({
             open: candle.open,
             close: candle.close,
             low: candle.low,
-            high: candle.high
+            high: candle.high,
+            direction: candle.direction
           }));
+          this.transferredCandles = newCandles;
 
-          console.log('Loaded', this.candles.length, 'candles from file (array format)');
+          console.log('Loaded', this.transferredCandles.length, 'candles from file (array format) into Editable Chart');
 
-          if (this.candles.length > 0) {
+          if (this.transferredCandles.length > 0) {
             this.calculatePriceRange();
           }
 
@@ -178,9 +187,9 @@ export class AppComponent implements OnInit {
     // Transfer candles data to the second chart via shared property
     if (this.candles.length > 0) {
       console.log('=== TRANSFER DATA BUTTON CLICKED ===');
-      console.log('Transferring', this.candles.length, 'candles to second chart');
+      console.log('Transferring', this.candles.length, 'candles to Editable Chart');
 
-      // Create a deep copy of candles array with independent candle objects
+      // Only update transferredCandles for Editable Chart - do NOT modify candles (Data Chart)
       const newCandles = this.candles.map(candle => ({
         open: candle.open,
         close: candle.close,
@@ -192,6 +201,7 @@ export class AppComponent implements OnInit {
       console.log('Created new candles array with', newCandles.length, 'items');
 
       // Set the transferred candles directly - this triggers ngOnChanges in child component
+      // This overrides any existing content in the Editable Chart
       this.transferredCandles = newCandles;
 
     } else {
