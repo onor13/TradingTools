@@ -174,7 +174,7 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     // Draw candles with drag handles
     this.candles.forEach((candle, index) => {
       const x = candleSpacing + (index * (candleWidth + 4));
-      this.drawCandleWithHandles(svg, chartGroup, x, candle, minPrice, maxPrice, chartHeight, width, height, candleWidth, candleSpacing, index);
+      this.drawCandle(svg, chartGroup, x, candle, minPrice, maxPrice, chartHeight, width, height, candleWidth, candleSpacing, index, true);
     });
 
     // Draw candle indexes
@@ -212,7 +212,21 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     }
   }
 
-  private drawCandle(svg: SVGSVGElement, group: SVGElement, x: number, candle: CandleData, minPrice: number, maxPrice: number, chartHeight: number, width: number, height: number, candleWidth: number, candleSpacing: number): void {
+  private drawCandle(
+    svg: SVGSVGElement,
+    group: SVGElement,
+    x: number,
+    candle: CandleData,
+    minPrice: number,
+    maxPrice: number,
+    chartHeight: number,
+    width: number,
+    height: number,
+    candleWidth: number,
+    candleSpacing: number,
+    index?: number,
+    withHandles?: boolean
+  ): void {
     const yOpen = ((maxPrice - candle.open) / (maxPrice - minPrice)) * chartHeight;
     const yClose = ((maxPrice - candle.close) / (maxPrice - minPrice)) * chartHeight;
     const yLow = ((maxPrice - candle.low) / (maxPrice - minPrice)) * chartHeight;
@@ -247,134 +261,64 @@ export class EditableChartComponent implements AfterViewInit, OnChanges {
     const openCircle = document.createElementNS(SVG_NS, 'circle');
     openCircle.setAttribute('cx', (x + candleWidth / 2).toString());
     openCircle.setAttribute('cy', yOpen.toString());
-    openCircle.setAttribute('r', '3');
+    openCircle.setAttribute('r', '4');
     openCircle.setAttribute('fill', '#fff');
+    openCircle.setAttribute('stroke', withHandles ? '#999' : 'none');
+    openCircle.setAttribute('stroke-width', withHandles ? '1' : '0');
     group.appendChild(openCircle);
 
     // Close circle
     const closeCircle = document.createElementNS(SVG_NS, 'circle');
     closeCircle.setAttribute('cx', (x + candleWidth / 2).toString());
     closeCircle.setAttribute('cy', yClose.toString());
-    closeCircle.setAttribute('r', '3');
+    closeCircle.setAttribute('r', '4');
     closeCircle.setAttribute('fill', '#fff');
+    closeCircle.setAttribute('stroke', withHandles ? '#999' : 'none');
+    closeCircle.setAttribute('stroke-width', withHandles ? '1' : '0');
     group.appendChild(closeCircle);
+
+    // Add drag handles if requested
+    if (withHandles && index !== undefined) {
+      this.addDragHandle(svg, group, x, yOpen, candle, 'open', index, candleWidth);
+      this.addDragHandle(svg, group, x, yClose, candle, 'close', index, candleWidth);
+    }
   }
 
-  private drawCandleWithHandles(
+  private addDragHandle(
     svg: SVGSVGElement,
     group: SVGElement,
     x: number,
+    y: number,
     candle: CandleData,
-    minPrice: number,
-    maxPrice: number,
-    chartHeight: number,
-    width: number,
-    height: number,
-    candleWidth: number,
-    candleSpacing: number,
-    index: number
+    handleType: 'open' | 'close',
+    index: number,
+    candleWidth: number
   ): void {
-    const yOpen = ((maxPrice - candle.open) / (maxPrice - minPrice)) * chartHeight;
-    const yClose = ((maxPrice - candle.close) / (maxPrice - minPrice)) * chartHeight;
-    const yLow = ((maxPrice - candle.low) / (maxPrice - minPrice)) * chartHeight;
-    const yHigh = ((maxPrice - candle.high) / (maxPrice - minPrice)) * chartHeight;
-
-    const isUp = candle.close >= candle.open;
-    const color = isUp ? '#4CAF50' : '#f44336';
-
-    // Wick (high to low line)
-    const wick = document.createElementNS(SVG_NS, 'line');
-    wick.setAttribute('x1', (x + candleWidth / 2).toString());
-    wick.setAttribute('y1', yLow.toString());
-    wick.setAttribute('x2', (x + candleWidth / 2).toString());
-    wick.setAttribute('y2', yHigh.toString());
-    wick.setAttribute('stroke', color);
-    wick.setAttribute('stroke-width', '9');
-    group.appendChild(wick);
-
-    // Body (rectangle)
-    const bodyHeight = Math.max(1, Math.abs(yOpen - yClose));
-    if (bodyHeight > 0) {
-      const body = document.createElementNS(SVG_NS, 'rect');
-      body.setAttribute('x', x.toString());
-      body.setAttribute('y', Math.min(yOpen, yClose).toString());
-      body.setAttribute('width', candleWidth.toString());
-      body.setAttribute('height', bodyHeight.toString());
-      body.setAttribute('fill', color);
-      group.appendChild(body);
-    }
-
-    // Open circle with drag handle
-    const openCircle = document.createElementNS(SVG_NS, 'circle');
-    openCircle.setAttribute('cx', (x + candleWidth / 2).toString());
-    openCircle.setAttribute('cy', yOpen.toString());
-    openCircle.setAttribute('r', '4');
-    openCircle.setAttribute('fill', '#fff');
-    openCircle.setAttribute('stroke', '#999');
-    openCircle.setAttribute('stroke-width', '1');
-
-    // Add drag handle for open price
-    const openHandle = document.createElementNS(SVG_NS, 'circle');
-    openHandle.setAttribute('cx', (x + candleWidth / 2).toString());
-    openHandle.setAttribute('cy', yOpen.toString());
-    openHandle.setAttribute('r', '6');
-    openHandle.setAttribute('fill', '#FF9800');
-    openHandle.setAttribute('stroke', '#E65100');
-    openHandle.setAttribute('stroke-width', '2');
-    openHandle.setAttribute('class', 'candle-handle');
-    openHandle.setAttribute('data-candle-index', index.toString());
-    openHandle.setAttribute('data-handle-type', 'open');
-    openHandle.setAttribute('data-start-price', this.formatNumber(candle.open));
+    const handle = document.createElementNS(SVG_NS, 'circle');
+    handle.setAttribute('cx', (x + candleWidth / 2).toString());
+    handle.setAttribute('cy', y.toString());
+    handle.setAttribute('r', '6');
+    handle.setAttribute('fill', '#FF9800');
+    handle.setAttribute('stroke', '#E65100');
+    handle.setAttribute('stroke-width', '2');
+    handle.setAttribute('class', 'candle-handle');
+    handle.setAttribute('data-candle-index', index.toString());
+    handle.setAttribute('data-handle-type', handleType);
+    handle.setAttribute('data-start-price', this.formatNumber(candle[handleType === 'open' ? 'open' : 'close']));
 
     // Add click event for drag start
-    const openClickEvent = document.createEvent('HTMLEvents');
-    openClickEvent.initEvent('click', true, true);
-    openHandle.addEventListener('click', (e: Event) => {
+    const handleClickEvent = document.createEvent('HTMLEvents');
+    handleClickEvent.initEvent('click', true, true);
+    handle.addEventListener('click', (e: Event) => {
       e.stopPropagation();
-      this.onCandleDragStart(index, 'open', parseFloat(openHandle.getAttribute('data-start-price') || '0'));
+      this.onCandleDragStart(index, handleType, parseFloat(handle.getAttribute('data-start-price') || '0'));
     });
-    openHandle.addEventListener('mousedown', (e: MouseEvent) => {
+    handle.addEventListener('mousedown', (e: MouseEvent) => {
       e.stopPropagation();
-      this.onCandleDragStart(index, 'open', parseFloat(openHandle.getAttribute('data-start-price') || '0'));
-    });
-
-    group.appendChild(openCircle);
-    group.appendChild(openHandle);
-
-    // Close circle with drag handle
-    const closeCircle = document.createElementNS(SVG_NS, 'circle');
-    closeCircle.setAttribute('cx', (x + candleWidth / 2).toString());
-    closeCircle.setAttribute('cy', yClose.toString());
-    closeCircle.setAttribute('r', '4');
-    closeCircle.setAttribute('fill', '#fff');
-    group.appendChild(closeCircle);
-
-    // Add drag handle for close price
-    const closeHandle = document.createElementNS(SVG_NS, 'circle');
-    closeHandle.setAttribute('cx', (x + candleWidth / 2).toString());
-    closeHandle.setAttribute('cy', yClose.toString());
-    closeHandle.setAttribute('r', '6');
-    closeHandle.setAttribute('fill', '#FF9800');
-    closeHandle.setAttribute('stroke', '#E65100');
-    closeHandle.setAttribute('stroke-width', '2');
-    closeHandle.setAttribute('class', 'candle-handle');
-    closeHandle.setAttribute('data-candle-index', index.toString());
-    closeHandle.setAttribute('data-handle-type', 'close');
-    closeHandle.setAttribute('data-start-price', this.formatNumber(candle.close));
-
-    // Add click event for drag start
-    const closeClickEvent = document.createEvent('HTMLEvents');
-    closeClickEvent.initEvent('click', true, true);
-    closeHandle.addEventListener('click', (e: Event) => {
-      e.stopPropagation();
-      this.onCandleDragStart(index, 'close', parseFloat(closeHandle.getAttribute('data-start-price') || '0'));
-    });
-    closeHandle.addEventListener('mousedown', (e: MouseEvent) => {
-      e.stopPropagation();
-      this.onCandleDragStart(index, 'close', parseFloat(closeHandle.getAttribute('data-start-price') || '0'));
+      this.onCandleDragStart(index, handleType, parseFloat(handle.getAttribute('data-start-price') || '0'));
     });
 
-    group.appendChild(closeHandle);
+    group.appendChild(handle);
   }
 
   private onCandleDragStart(candleIndex: number, handleType: 'open' | 'close', startPrice: number): void {
