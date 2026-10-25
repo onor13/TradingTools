@@ -78,6 +78,10 @@ export class AppComponent implements OnInit {
     this.loadCandles();
   }
 
+  loadData(): void {
+    console.log('Load button clicked');
+  }
+
   transferData(): void {
     // Transfer candles data to the second chart via shared property
     if (this.candles.length > 0) {
